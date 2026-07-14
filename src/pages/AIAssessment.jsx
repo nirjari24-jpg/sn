@@ -49,6 +49,10 @@ export default function AIAssessment() {
       });
       const data = await res.json();
       
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to analyze profile.");
+      }
+
       // Save profile to context
       setAssessmentProfile({
         answers: finalAnswers,

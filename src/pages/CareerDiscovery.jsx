@@ -138,7 +138,7 @@ export default function CareerDiscovery() {
                   <div className="w-px h-12 bg-white/10 mx-2"></div>
                   <div>
                     <h4 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-1">Your Strengths</h4>
-                    <p className="text-sm text-gray-300">{assessmentProfile.analysis.strengths.join(", ")}</p>
+                    <p className="text-sm text-gray-300">{assessmentProfile.analysis.strengths?.join(", ") || "Analyzing strengths..."}</p>
                   </div>
                 </div>
               </GlassCard>
