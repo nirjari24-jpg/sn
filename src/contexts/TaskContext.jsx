@@ -5,7 +5,7 @@ import { useCareer } from "./CareerContext";
 const TaskContext = createContext(null);
 
 export function TaskProvider({ children }) {
-  const { activeRoadmap } = useCareer();
+  const { activeRoadmap, assessmentProfile } = useCareer();
 
   const [xp, setXp] = useState(() => {
     const val = localStorage.getItem("skillnova_xp");
@@ -33,25 +33,32 @@ export function TaskProvider({ children }) {
       const stored = localStorage.getItem("skillnova_tasks");
       const currentTasks = stored ? JSON.parse(stored) : [];
       
+      const userExperience = assessmentProfile?.answers?.experience || "I am just starting (Beginner)";
+      const isIntermediate = userExperience.includes("Intermediate");
+      const isAdvanced = userExperience.includes("Advanced");
+      
       // If we have an active roadmap but no tasks for it, or if the user generated a new roadmap
       // we need to create tasks. A simple way is to check if our current tasks match the roadmap.
       const allNewTasks = [];
-      activeRoadmap.stages.forEach((stage) => {
+      activeRoadmap.stages.forEach((stage, idx) => {
+        const shouldAutoComplete = (isIntermediate && idx === 0) || (isAdvanced && idx <= 1);
+        
         stage.tasks.forEach((t) => {
           // See if we already have progress for this task
           const existing = currentTasks.find(oldT => oldT.id === t.id);
+          
           allNewTasks.push({
             ...t,
             stageId: stage.id,
             stageTitle: stage.title,
-            completed: existing ? existing.completed : false,
+            completed: existing ? existing.completed : shouldAutoComplete,
             xp: t.xp || 100
           });
         });
       });
       setTasks(allNewTasks);
     }
-  }, [activeRoadmap]);
+  }, [activeRoadmap, assessmentProfile]);
 
   const [missions, setMissions] = useState(() => {
     const stored = localStorage.getItem("skillnova_missions");

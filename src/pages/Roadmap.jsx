@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Map, CheckCircle2, ChevronRight, Lock, Sparkles, BookOpen } from "lucide-react";
 import { useTasks } from "../contexts/TaskContext";
@@ -7,6 +8,7 @@ import GlassCard from "../components/ui/GlassCard";
 import { scaleIn } from "../animations/motion";
 
 export default function Roadmap() {
+  const navigate = useNavigate();
   const { tasks, toggleTask } = useTasks();
   const { activeRoadmap } = useCareer();
   const [expandedStage, setExpandedStage] = useState("");
@@ -143,11 +145,10 @@ export default function Roadmap() {
                     {stageTasks.map((task) => (
                       <div
                         key={task.id}
-                        onClick={() => toggleTask(task.id)}
-                        className={`flex items-center justify-between p-3.5 rounded-xl border text-xs sm:text-sm transition-all duration-300 cursor-pointer ${
+                        className={`flex items-center justify-between p-3.5 rounded-xl border text-xs sm:text-sm transition-all duration-300 ${
                           task.completed
                             ? "bg-emerald-950/10 border-emerald-500/10 text-gray-500"
-                            : "bg-white/2 border-white/5 hover:border-violet-500/20 text-white"
+                            : "bg-white/2 border-white/5 text-white"
                         }`}
                       >
                         <div className="flex items-center gap-3 text-left min-w-0">
@@ -162,13 +163,21 @@ export default function Roadmap() {
                           </span>
                         </div>
                         <div className="flex items-center gap-4 shrink-0 pl-3">
-                          {/* Recommended lesson tag placeholder */}
-                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-md font-semibold border border-white/5">
-                            <BookOpen size={10} /> Docs
-                          </span>
-                          <span className={`font-bold text-xs ${task.completed ? "text-emerald-500" : "text-violet-400"}`}>
-                            +{task.xp} XP
-                          </span>
+                          {task.completed ? (
+                            <span className="font-bold text-xs text-emerald-500">
+                              +{task.xp} XP
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/weekly-tests?taskId=${task.id}`);
+                              }}
+                              className="bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-md transition-colors shadow-sm cursor-pointer"
+                            >
+                              Take Test
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

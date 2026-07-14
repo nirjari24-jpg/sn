@@ -1,12 +1,18 @@
 import React, { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrainCircuit, CheckCircle2, ChevronRight, Activity, Award } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
+import { useTasks } from "../contexts/TaskContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 
 export default function WeeklyTests() {
   const { activeRoadmap, addTestScore } = useCareer();
+  const { tasks, toggleTask } = useTasks();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const taskId = searchParams.get("taskId");
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
@@ -14,8 +20,9 @@ export default function WeeklyTests() {
   const [answers, setAnswers] = useState({});
   const [testResult, setTestResult] = useState(null);
 
-  // Determine current active stage from roadmap (first incomplete stage, or stage 1)
+  const targetTask = taskId ? tasks.find(t => t.id === taskId) : null;
   const currentStage = activeRoadmap?.stages?.[0] || { title: "Foundation Stage", id: "s1" };
+  const targetTitle = targetTask ? `Task: ${targetTask.title}` : currentStage.title;
 
   const generateTest = async () => {
     setIsGenerating(true);
@@ -26,7 +33,7 @@ export default function WeeklyTests() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          stage: currentStage, 
+          stage: targetTask ? { title: targetTask.title } : currentStage, 
           careerTitle: activeRoadmap?.title || "Technology"
         })
       });
@@ -34,7 +41,7 @@ export default function WeeklyTests() {
       setTestData(data);
     } catch (error) {
       console.error(error);
-      alert("Failed to generate weekly test.");
+      alert("Failed to generate test.");
     } finally {
       setIsGenerating(false);
     }
@@ -49,12 +56,16 @@ export default function WeeklyTests() {
         body: JSON.stringify({ 
           test: testData,
           answers: answers,
-          stageTitle: currentStage.title
+          stageTitle: targetTitle
         })
       });
       const data = await res.json();
       setTestResult(data);
-      addTestScore({ ...data, stageId: currentStage.id, stageTitle: currentStage.title });
+      addTestScore({ ...data, stageId: currentStage.id, stageTitle: targetTitle });
+
+      if (taskId && data.score >= 70 && targetTask && !targetTask.completed) {
+        toggleTask(taskId);
+      }
     } catch (error) {
       console.error(error);
       alert("Failed to score test.");
@@ -205,7 +216,12 @@ export default function WeeklyTests() {
               </GlassCard>
             </div>
 
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center mt-4 gap-4">
+               {taskId && testResult.score >= 70 && (
+                 <Button onClick={() => navigate("/roadmap")} variant="glow" className="px-6 text-xs">
+                   Task Completed! Return to Roadmap
+                 </Button>
+               )}
                <Button onClick={() => setTestResult(null)} variant="secondary" className="px-6 text-xs">
                  Take Another Test
                </Button>
