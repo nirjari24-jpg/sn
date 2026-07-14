@@ -1,18 +1,27 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Map, CheckCircle2, ChevronRight, Lock, Unlock, Sparkles, BookOpen } from "lucide-react";
+import { Map, CheckCircle2, ChevronRight, Lock, Sparkles, BookOpen } from "lucide-react";
 import { useTasks } from "../contexts/TaskContext";
-import { mockCareers } from "../data/mockCareers";
+import { useCareer } from "../contexts/CareerContext";
 import GlassCard from "../components/ui/GlassCard";
-import ProgressRing from "../components/ui/ProgressRing";
 import { scaleIn } from "../animations/motion";
 
 export default function Roadmap() {
-  const { tasks, toggleTask, careerTrack } = useTasks();
+  const { tasks, toggleTask } = useTasks();
+  const { activeRoadmap } = useCareer();
   const [expandedStage, setExpandedStage] = useState("");
 
-  const activeCareer = mockCareers.find((c) => c.id === careerTrack) || mockCareers[0];
-  const stages = activeCareer.roadmap.stages;
+  if (!activeRoadmap) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <Map className="w-16 h-16 text-gray-700 mb-4" />
+        <h3 className="text-xl font-bold text-white mb-2">No Roadmap Active</h3>
+        <p className="text-gray-400">Take the assessment and select a career to generate your AI Roadmap.</p>
+      </div>
+    );
+  }
+
+  const stages = activeRoadmap.stages || [];
 
   // Group task items by stage
   const getStageTasks = (stageId) => {
@@ -33,7 +42,7 @@ export default function Roadmap() {
         <div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
             <Map className="text-violet-400 w-8 h-8" />
-            Interactive Skill Roadmap
+            Interactive AI Roadmap
           </h2>
           <p className="text-gray-400 text-sm mt-1">
             Track your stage milestones and complete coding tasks to unlock developer competencies.
@@ -43,7 +52,7 @@ export default function Roadmap() {
         {/* Track Label */}
         <div className="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 shrink-0">
           <div className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse" />
-          <span className="text-xs font-bold text-white">{activeCareer.title}</span>
+          <span className="text-xs font-bold text-white">{activeRoadmap.title}</span>
         </div>
       </div>
 

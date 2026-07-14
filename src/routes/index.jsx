@@ -13,6 +13,8 @@ import Achievements from "../pages/Achievements";
 import Resources from "../pages/Resources";
 import NOVA from "../pages/NOVA";
 import Settings from "../pages/Settings";
+import AIAssessment from "../pages/AIAssessment";
+import WeeklyTests from "../pages/WeeklyTests";
 import AuthLayout from "../layouts/AuthLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../contexts/AuthContext";
@@ -53,10 +55,12 @@ export default function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/assessment" element={<AIAssessment />} />
         <Route path="/career-discovery" element={<CareerDiscovery />} />
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/planner" element={<Planner />} />
         <Route path="/progress" element={<Progress />} />
+        <Route path="/weekly-tests" element={<WeeklyTests />} />
         <Route path="/achievements" element={<Achievements />} />
         <Route path="/resources" element={<Resources />} />
         <Route path="/nova" element={<NOVA />} />

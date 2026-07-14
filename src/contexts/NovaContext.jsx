@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useCareer } from "./CareerContext";
 
 const NovaContext = createContext(null);
 
 export function NovaProvider({ children }) {
+  const { activeRoadmap } = useCareer();
+  
   const [messages, setMessages] = useState(() => {
     const stored = localStorage.getItem("skillnova_messages");
     if (stored) return JSON.parse(stored);
@@ -23,34 +26,7 @@ export function NovaProvider({ children }) {
     localStorage.setItem("skillnova_messages", JSON.stringify(messages));
   }, [messages]);
 
-  const generateAnswer = (userText) => {
-    const text = userText.toLowerCase();
-    
-    if (text.includes("hello") || text.includes("hi") || text.includes("hey")) {
-      return "Hello! I am standing by to assist with your educational milestones. What technical tracks or portfolios are we mapping out today?";
-    }
-    
-    if (text.includes("git") || text.includes("github")) {
-      return "Git is your digital ledger. Here are the core commands to commit to memory:\n\n```bash\n# Initialize a repository\ngit init\n\n# Stage changes for commit\ngit add .\n\n# Commit with a structured message\ngit commit -m \"feat: initialize core routing structure\"\n\n# Push to origin repository\ngit push origin main\n```\nWould you like me to add a Git-related mission to your daily task planner?";
-    }
-
-    if (text.includes("glassmorphism") || text.includes("css") || text.includes("tailwind")) {
-      return "To achieve our premium Dark Space glassmorphism, use this Tailwind CSS mix:\n\n```html\n<div class=\"bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6\">\n  <!-- Premium Glass Content -->\n</div>\n```\n*This adds background blur, transparent white borders, and soft padding for that expensive SaaS aesthetic.*";
-    }
-
-    if (text.includes("salary") || text.includes("money") || text.includes("earn")) {
-      return "According to our career matrices, here are the average yields for senior specializations:\n\n| Technical Focus | Average Entry | Growth Rate | Demand Index |\n| :--- | :--- | :--- | :--- |\n| AI & ML Engineering | $142,000 | +35% YoY | Critical |\n| Software Architecture | $135,000 | +22% YoY | High |\n| Product Design (UX) | $98,000 | +18% YoY | High |\n\nWhich of these trajectories fits your personal creative vision?";
-    }
-
-    if (text.includes("roadmap") || text.includes("study") || text.includes("learn")) {
-      return "Your roadmap is structured into 4 distinct phases:\n1. **Foundation**: Build core scripting and layout logic.\n2. **Specialization**: Master modern React framework components.\n3. **Backend Integration**: Create secure databases and REST/GraphQL APIs.\n4. **Infrastructure & MLOps**: Configure Docker, CI/CD pipelines, and cloud hosting.\n\nGo to the **Roadmap** view in the sidebar to visualize this tree interactive grid!";
-    }
-
-    // Default response
-    return "Fascinating query. To build momentum, I recommend looking at your **Today's Missions** on the Dashboard or completing the **Career Discovery** assessment to unlock tailored resources. What specific coding language or framework shall we dissect next?";
-  };
-
-  const sendMessage = (text) => {
+  const sendMessage = async (text) => {
     if (!text.trim()) return;
 
     // Add user message
@@ -61,28 +37,45 @@ export function NovaProvider({ children }) {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
+    // Keep track of the current messages to use as history
+    const currentMessages = [...messages];
+
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
 
-    // Simulate AI response stream
-    setTimeout(() => {
-      const fullResponse = generateAnswer(text);
-      const systemMsgId = `nova-${Date.now()}`;
+    try {
+      const history = currentMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'nova', content: m.text }));
       
+      // Inject context of active roadmap if it exists
+      const systemContext = activeRoadmap 
+        ? `The user is currently studying the following career roadmap: ${activeRoadmap.title}. Keep this in mind when answering.` 
+        : "";
+
+      const res = await fetch('http://localhost:5000/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history, systemContext })
+      });
+      
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      const fullResponse = data.reply || "No response generated.";
+      
+      const systemMsgId = `nova-${Date.now()}`;
       const systemMsg = {
         id: systemMsgId,
         sender: "nova",
         text: "",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-
+      
       setMessages((prev) => [...prev, systemMsg]);
       setIsTyping(false);
 
       // Stream text chunk by chunk
       let currentLength = 0;
       const interval = setInterval(() => {
-        currentLength += Math.min(5, fullResponse.length - currentLength);
+        currentLength += Math.min(10, fullResponse.length - currentLength);
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === systemMsgId
@@ -94,8 +87,18 @@ export function NovaProvider({ children }) {
         if (currentLength >= fullResponse.length) {
           clearInterval(interval);
         }
-      }, 15);
-    }, 1200);
+      }, 10);
+
+    } catch (err) {
+      console.error("NOVA AI Error:", err);
+      setIsTyping(false);
+      setMessages((prev) => [...prev, {
+        id: `nova-${Date.now()}`,
+        sender: "nova",
+        text: "Error communicating with NOVA AI Server. Please ensure the backend server and Ollama are running.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+    }
   };
 
   const clearChat = () => {
@@ -131,3 +134,4 @@ export function useNova() {
   }
   return context;
 }
+

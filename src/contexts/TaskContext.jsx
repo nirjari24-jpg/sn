@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { mockUserData } from "../data/mockData";
-import { mockCareers } from "../data/mockCareers";
+import { useCareer } from "./CareerContext";
 
 const TaskContext = createContext(null);
 
 export function TaskProvider({ children }) {
+  const { activeRoadmap } = useCareer();
+
   const [xp, setXp] = useState(() => {
     const val = localStorage.getItem("skillnova_xp");
     return val ? parseInt(val) : mockUserData.currentXP;
@@ -22,26 +24,34 @@ export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState(() => {
     const stored = localStorage.getItem("skillnova_tasks");
     if (stored) return JSON.parse(stored);
+    return [];
+  });
 
-    // Initial load: grab tasks from Software Engineering mockCareer
-    const track = mockUserData.careerTrack;
-    const career = mockCareers.find((c) => c.id === track);
-    if (career) {
-      // Flatten all stages tasks
-      const allTasks = [];
-      career.roadmap.stages.forEach((stage) => {
+  // Whenever activeRoadmap changes, re-sync tasks if it's empty or we want to reset
+  useEffect(() => {
+    if (activeRoadmap && activeRoadmap.stages) {
+      const stored = localStorage.getItem("skillnova_tasks");
+      const currentTasks = stored ? JSON.parse(stored) : [];
+      
+      // If we have an active roadmap but no tasks for it, or if the user generated a new roadmap
+      // we need to create tasks. A simple way is to check if our current tasks match the roadmap.
+      const allNewTasks = [];
+      activeRoadmap.stages.forEach((stage) => {
         stage.tasks.forEach((t) => {
-          allTasks.push({
+          // See if we already have progress for this task
+          const existing = currentTasks.find(oldT => oldT.id === t.id);
+          allNewTasks.push({
             ...t,
             stageId: stage.id,
-            stageTitle: stage.title
+            stageTitle: stage.title,
+            completed: existing ? existing.completed : false,
+            xp: t.xp || 100
           });
         });
       });
-      return allTasks;
+      setTasks(allNewTasks);
     }
-    return [];
-  });
+  }, [activeRoadmap]);
 
   const [missions, setMissions] = useState(() => {
     const stored = localStorage.getItem("skillnova_missions");
@@ -63,7 +73,7 @@ export function TaskProvider({ children }) {
   const addXP = (amount) => {
     setXp((prevXP) => {
       const nextXP = prevXP + amount;
-      const xpNeeded = level * 1000; // Level 1: 1000XP, Level 2: 2000XP, Level 3: 3000XP
+      const xpNeeded = level * 1000;
       
       if (nextXP >= xpNeeded) {
         setLevel((prevLvl) => prevLvl + 1);
@@ -83,7 +93,6 @@ export function TaskProvider({ children }) {
           const completedState = !t.completed;
           xpEarned = completedState ? t.xp : -t.xp;
           
-          // Trigger related mission completion if it matches
           if (completedState) {
             checkMissionRelation(t.title);
           }
@@ -130,7 +139,6 @@ export function TaskProvider({ children }) {
   };
 
   const checkMissionRelation = (taskTitle) => {
-    // If completed a task containing "Git & GitHub", complete mission "m3"
     if (taskTitle.toLowerCase().includes("git")) {
       setMissions((prev) =>
         prev.map((m) => (m.id === "m3" && !m.completed ? { ...m, completed: true } : m))
@@ -140,27 +148,14 @@ export function TaskProvider({ children }) {
   };
 
   const switchCareerTrack = (trackId) => {
-    const career = mockCareers.find((c) => c.id === trackId);
-    if (career) {
-      setCareerTrack(trackId);
-      const allTasks = [];
-      career.roadmap.stages.forEach((stage) => {
-        stage.tasks.forEach((t) => {
-          allTasks.push({
-            ...t,
-            stageId: stage.id,
-            stageTitle: stage.title
-          });
-        });
-      });
-      setTasks(allTasks);
-      // Reset missions or provide new ones
-      setMissions([
-        { id: "m1", title: `Explore stage 1 foundation concepts for ${career.title}`, xp: 80, completed: false, category: "Roadmap" },
-        { id: "m2", title: `Sync with NOVA for a deep dive interview in ${career.title}`, xp: 100, completed: false, category: "Consulting" },
-        { id: "m3", title: `Master the first coding challenges of ${career.title}`, xp: 120, completed: false, category: "Roadmap" }
-      ]);
-    }
+    setCareerTrack(trackId);
+    // Since we rely on activeRoadmap for the tasks now, the actual task switching
+    // will happen when activeRoadmap is updated via the CareerContext/API.
+    setMissions([
+      { id: "m1", title: `Explore foundation concepts for ${trackId}`, xp: 80, completed: false, category: "Roadmap" },
+      { id: "m2", title: `Sync with NOVA for a deep dive interview in ${trackId}`, xp: 100, completed: false, category: "Consulting" },
+      { id: "m3", title: `Master the first coding challenges of ${trackId}`, xp: 120, completed: false, category: "Roadmap" }
+    ]);
   };
 
   return (
@@ -191,3 +186,4 @@ export function useTasks() {
   }
   return context;
 }
+

@@ -21,12 +21,13 @@ import clsx from "clsx";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/assessment", label: "AI Assessment", icon: Sparkles },
   { path: "/career-discovery", label: "Career Discovery", icon: Compass },
   { path: "/roadmap", label: "Roadmap", icon: Map },
   { path: "/planner", label: "Planner", icon: Calendar },
+  { path: "/weekly-tests", label: "Weekly Tests", icon: BookOpen },
   { path: "/progress", label: "Progress", icon: BarChart3 },
   { path: "/achievements", label: "Achievements", icon: Trophy },
-  { path: "/resources", label: "Resources", icon: BookOpen },
   { path: "/nova", label: "NOVA AI Chat", icon: MessageSquare },
   { path: "/settings", label: "Settings", icon: Settings }
 ];
