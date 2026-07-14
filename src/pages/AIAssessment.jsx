@@ -7,13 +7,10 @@ import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 
 const aiAssessmentQuestions = [
-  { id: "techSkills", question: "What technical skills or tools do you currently have experience with?", type: "text", placeholder: "e.g., Python, Figma, Excel, none" },
-  { id: "programmingKnowledge", question: "How would you rate your current programming knowledge?", type: "choice", options: ["None at all", "I know some basics", "I can write simple scripts", "I am proficient"] },
-  { id: "problemSolving", question: "When faced with a complex problem, how do you usually approach it?", type: "text", placeholder: "e.g., break it into smaller parts, search for similar solutions online..." },
-  { id: "interests", question: "What aspects of technology interest you the most?", type: "text", placeholder: "e.g., AI, building websites, analyzing data, designing UI..." },
-  { id: "education", question: "What is your highest level of education or current field of study?", type: "text", placeholder: "e.g., High School, B.S. in Computer Science, Self-taught" },
-  { id: "experience", question: "How many years of professional tech experience do you have?", type: "choice", options: ["0 years (Beginner)", "1-2 years (Junior)", "3-5 years (Mid-level)", "5+ years (Senior)"] },
-  { id: "careerGoals", question: "What is your primary career goal for the next 12 months?", type: "text", placeholder: "e.g., Land my first job as a front-end dev, transition to Data Science..." }
+  { id: "skills", question: "What are your current skills? (Things you are already good at)", type: "text", placeholder: "e.g., writing, basic math, talking to people, using computers..." },
+  { id: "interests", question: "What are your main areas of interest? (Things you enjoy doing or want to learn)", type: "text", placeholder: "e.g., technology, art, business, science..." },
+  { id: "goals", question: "What are your biggest goals? (What you want to achieve)", type: "text", placeholder: "e.g., get a good job, learn to code, start my own business..." },
+  { id: "experience", question: "How much experience do you have in your interests?", type: "choice", options: ["I am just starting (Beginner)", "I know a little bit (Intermediate)", "I have done this a lot (Advanced)"] }
 ];
 
 export default function AIAssessment() {
