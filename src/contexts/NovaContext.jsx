@@ -4,7 +4,7 @@ import { useCareer } from "./CareerContext";
 const NovaContext = createContext(null);
 
 export function NovaProvider({ children }) {
-  const { activeRoadmap } = useCareer();
+  const { activeRoadmap, assessmentProfile, testScores, dailyMission } = useCareer();
   
   const [messages, setMessages] = useState(() => {
     const stored = localStorage.getItem("skillnova_messages");
@@ -46,10 +46,11 @@ export function NovaProvider({ children }) {
     try {
       const history = currentMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'nova', content: m.text }));
       
-      // Inject context of active roadmap if it exists
-      const systemContext = activeRoadmap 
-        ? `The user is currently studying the following career roadmap: ${activeRoadmap.title}. Keep this in mind when answering.` 
-        : "";
+      let systemContext = "";
+      if (activeRoadmap) systemContext += `Roadmap: ${activeRoadmap.title}. `;
+      if (assessmentProfile) systemContext += `Profile: ${assessmentProfile.technicalLevel} ${assessmentProfile.learningStyle}. `;
+      if (dailyMission) systemContext += `Today's Mission: ${dailyMission.missionTitle}. `;
+      if (testScores.length > 0) systemContext += `Latest Test Score: ${testScores[testScores.length - 1].score}%. `;
 
       const res = await fetch('http://localhost:5000/api/ai/chat', {
         method: 'POST',

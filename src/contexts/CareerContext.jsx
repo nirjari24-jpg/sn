@@ -27,10 +27,21 @@ export function CareerProvider({ children }) {
     return val ? JSON.parse(val) : [];
   });
 
-  // Track overall goals: daily, weekly, monthly
-  const [plannerGoals, setPlannerGoals] = useState(() => {
-    const val = localStorage.getItem("skillnova_ai_planner_goals");
-    return val ? JSON.parse(val) : { daily: [], weekly: [], monthly: [] };
+  // AI Generated Daily Mission
+  const [dailyMission, setDailyMission] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_daily_mission");
+    return val ? JSON.parse(val) : null;
+  });
+
+  // Gamification: XP & Badges
+  const [xp, setXp] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_xp");
+    return val ? parseInt(val, 10) : 0;
+  });
+
+  const [badges, setBadges] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_badges");
+    return val ? JSON.parse(val) : [];
   });
 
   useEffect(() => {
@@ -53,19 +64,46 @@ export function CareerProvider({ children }) {
   }, [testScores]);
 
   useEffect(() => {
-    localStorage.setItem("skillnova_ai_planner_goals", JSON.stringify(plannerGoals));
-  }, [plannerGoals]);
+    if (dailyMission) localStorage.setItem("skillnova_ai_daily_mission", JSON.stringify(dailyMission));
+    else localStorage.removeItem("skillnova_ai_daily_mission");
+  }, [dailyMission]);
+
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_xp", xp.toString());
+  }, [xp]);
+
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_badges", JSON.stringify(badges));
+  }, [badges]);
 
   const clearAllData = () => {
     setAssessmentProfile(null);
     setRecommendedCareers([]);
     setActiveRoadmap(null);
     setTestScores([]);
-    setPlannerGoals({ daily: [], weekly: [], monthly: [] });
+    setDailyMission(null);
+    setXp(0);
+    setBadges([]);
+  };
+
+  const switchCareer = () => {
+    // Archives current roadmap/mission, keeps profile and achievements
+    setActiveRoadmap(null);
+    setDailyMission(null);
+    setTestScores([]);
   };
 
   const addTestScore = (scoreData) => {
     setTestScores(prev => [...prev, { ...scoreData, date: new Date().toISOString() }]);
+    if (scoreData.xpEarned) {
+      setXp(prev => prev + scoreData.xpEarned);
+    }
+  };
+
+  const awardBadge = (badge) => {
+    if (!badges.find(b => b.id === badge.id)) {
+      setBadges(prev => [...prev, badge]);
+    }
   };
 
   return (
@@ -75,8 +113,10 @@ export function CareerProvider({ children }) {
         recommendedCareers, setRecommendedCareers,
         activeRoadmap, setActiveRoadmap,
         testScores, addTestScore,
-        plannerGoals, setPlannerGoals,
-        clearAllData
+        dailyMission, setDailyMission,
+        xp, setXp,
+        badges, awardBadge,
+        clearAllData, switchCareer
       }}
     >
       {children}

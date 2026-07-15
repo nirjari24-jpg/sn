@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Map, CheckCircle2, ChevronRight, Lock, Sparkles, BookOpen } from "lucide-react";
-import { useTasks } from "../contexts/TaskContext";
+import { Map, CheckCircle2, ChevronRight, Lock, Sparkles, BrainCircuit } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
 import GlassCard from "../components/ui/GlassCard";
+import Button from "../components/ui/Button";
 import { scaleIn } from "../animations/motion";
 
 export default function Roadmap() {
   const navigate = useNavigate();
-  const { tasks, toggleTask } = useTasks();
   const { activeRoadmap } = useCareer();
   const [expandedStage, setExpandedStage] = useState("");
 
@@ -18,42 +17,37 @@ export default function Roadmap() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Map className="w-16 h-16 text-gray-700 mb-4" />
         <h3 className="text-xl font-bold text-white mb-2">No Roadmap Active</h3>
-        <p className="text-gray-400">Take the assessment and select a career to generate your AI Roadmap.</p>
+        <p className="text-gray-400">Take the assessment and let NOVA map your career trajectory.</p>
+        <Button onClick={() => navigate('/assessment')} className="mt-6" variant="primary">Start Assessment</Button>
       </div>
     );
   }
 
   const stages = activeRoadmap.stages || [];
 
-  // Group task items by stage
-  const getStageTasks = (stageId) => {
-    return tasks.filter((t) => t.stageId === stageId);
-  };
-
-  const getStageProgress = (stageId) => {
-    const stageTasks = getStageTasks(stageId);
-    if (stageTasks.length === 0) return 0;
-    const completed = stageTasks.filter((t) => t.completed).length;
-    return (completed / stageTasks.length) * 100;
+  const getStageProgress = (stage) => {
+    if (!stage.tasks || stage.tasks.length === 0) return 0;
+    const completed = stage.tasks.filter((t) => t.completed).length;
+    return (completed / stage.tasks.length) * 100;
   };
 
   return (
-    <div className="max-w-4xl mx-auto text-left flex flex-col gap-6">
+    <div className="max-w-4xl mx-auto text-left flex flex-col gap-6 pb-10">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
             <Map className="text-violet-400 w-8 h-8" />
-            Interactive AI Roadmap
+            AI Career Roadmap
           </h2>
           <p className="text-gray-400 text-sm mt-1">
-            Track your stage milestones and complete coding tasks to unlock developer competencies.
+            This trajectory is fully managed by NOVA. Complete Weekly Tests to advance stages.
           </p>
         </div>
         
         {/* Track Label */}
         <div className="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 shrink-0">
-          <div className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse" />
+          <BrainCircuit size={14} className="text-violet-400 animate-pulse" />
           <span className="text-xs font-bold text-white">{activeRoadmap.title}</span>
         </div>
       </div>
@@ -64,11 +58,10 @@ export default function Roadmap() {
         <div className="absolute left-[39px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-violet-500/50 via-indigo-500/20 to-transparent pointer-events-none" />
 
         {stages.map((stage, idx) => {
-          const stageTasks = getStageTasks(stage.id);
-          const progress = getStageProgress(stage.id);
+          const progress = getStageProgress(stage);
           const isDone = progress === 100;
-          const isUnlocked = idx === 0 || getStageProgress(stages[idx - 1].id) > 0; // Unlock if first or previous has progress
-          const isOpen = expandedStage === stage.id || (!expandedStage && idx === 0);
+          const isUnlocked = idx === 0 || getStageProgress(stages[idx - 1]) > 0;
+          const isOpen = expandedStage === stage.id || (!expandedStage && isUnlocked && !isDone);
 
           return (
             <motion.div
@@ -84,7 +77,7 @@ export default function Roadmap() {
                   onClick={() => isUnlocked && setExpandedStage(isOpen ? "" : stage.id)}
                   className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all duration-300 ${
                     isDone
-                      ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                      ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)] cursor-pointer"
                       : isUnlocked
                       ? "bg-violet-950/30 border-violet-500/40 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.15)] cursor-pointer"
                       : "bg-[#0a081c]/50 border-white/5 text-gray-600 cursor-not-allowed"
@@ -122,7 +115,7 @@ export default function Roadmap() {
                       <span className="text-[10px] text-gray-500 font-semibold">• {stage.duration}</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Contains {stageTasks.length} technical tasks to achieve stage integration.
+                      {stage.tasks?.length || 0} technical competencies. Evaluated by NOVA.
                     </p>
                   </div>
                   
@@ -140,9 +133,9 @@ export default function Roadmap() {
                 </div>
 
                 {/* Expanded Tasks list */}
-                {isOpen && (
+                {isOpen && stage.tasks && (
                   <div className="mt-6 border-t border-white/5 pt-4 flex flex-col gap-3">
-                    {stageTasks.map((task) => (
+                    {stage.tasks.map((task) => (
                       <div
                         key={task.id}
                         className={`flex items-center justify-between p-3.5 rounded-xl border text-xs sm:text-sm transition-all duration-300 ${
@@ -164,23 +157,25 @@ export default function Roadmap() {
                         </div>
                         <div className="flex items-center gap-4 shrink-0 pl-3">
                           {task.completed ? (
-                            <span className="font-bold text-xs text-emerald-500">
-                              +{task.xp} XP
+                            <span className="font-bold text-[10px] text-emerald-500">
+                              VERIFIED
                             </span>
                           ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/weekly-tests?taskId=${task.id}`);
-                              }}
-                              className="bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-md transition-colors shadow-sm cursor-pointer"
-                            >
-                              Take Test
-                            </button>
+                            <span className="font-bold text-[10px] text-gray-500">
+                              PENDING
+                            </span>
                           )}
                         </div>
                       </div>
                     ))}
+                    
+                    {!isDone && (
+                       <div className="mt-4 flex justify-end">
+                         <Button onClick={() => navigate('/weekly-tests')} variant="glow" className="text-xs py-2 px-4 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                           Request Stage Evaluation
+                         </Button>
+                       </div>
+                    )}
                   </div>
                 )}
               </GlassCard>

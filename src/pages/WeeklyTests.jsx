@@ -3,16 +3,16 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrainCircuit, CheckCircle2, ChevronRight, Activity, Award } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
-import { useTasks } from "../contexts/TaskContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 
 export default function WeeklyTests() {
-  const { activeRoadmap, addTestScore } = useCareer();
-  const { tasks, toggleTask } = useTasks();
+  const { activeRoadmap, setActiveRoadmap, addTestScore } = useCareer();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const taskId = searchParams.get("taskId");
+  // We can pass a specific taskId if the user clicked "Take Test" on a specific task
+  const targetStageId = searchParams.get("stageId");
+  const targetTaskId = searchParams.get("taskId");
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
@@ -20,9 +20,26 @@ export default function WeeklyTests() {
   const [answers, setAnswers] = useState({});
   const [testResult, setTestResult] = useState(null);
 
-  const targetTask = taskId ? tasks.find(t => t.id === taskId) : null;
-  const currentStage = activeRoadmap?.stages?.[0] || { title: "Foundation Stage", id: "s1" };
-  const targetTitle = targetTask ? `Task: ${targetTask.title}` : currentStage.title;
+  let currentStage = activeRoadmap?.stages?.[0];
+  let currentTask = null;
+
+  if (activeRoadmap) {
+    if (targetStageId) {
+       currentStage = activeRoadmap.stages.find(s => s.id === targetStageId) || currentStage;
+    }
+    if (targetTaskId) {
+       for (const stage of activeRoadmap.stages) {
+         const found = stage.tasks?.find(t => t.id === targetTaskId);
+         if (found) {
+           currentStage = stage;
+           currentTask = found;
+           break;
+         }
+       }
+    }
+  }
+
+  const targetTitle = currentTask ? `Task: ${currentTask.title}` : (currentStage?.title || "General Evaluation");
 
   const generateTest = async () => {
     setIsGenerating(true);
@@ -33,15 +50,16 @@ export default function WeeklyTests() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          stage: targetTask ? { title: targetTask.title } : currentStage, 
-          careerTitle: activeRoadmap?.title || "Technology"
+          stage: currentStage,
+          careerTitle: activeRoadmap?.title || "Technology",
+          targetTaskTitle: currentTask?.title
         })
       });
       const data = await res.json();
       setTestData(data);
     } catch (error) {
       console.error(error);
-      alert("Failed to generate test.");
+      alert("Failed to generate test. Make sure backend is running with Gemini API Key.");
     } finally {
       setIsGenerating(false);
     }
@@ -63,9 +81,23 @@ export default function WeeklyTests() {
       setTestResult(data);
       addTestScore({ ...data, stageId: currentStage.id, stageTitle: targetTitle });
 
-      if (taskId && data.score >= 70 && targetTask && !targetTask.completed) {
-        toggleTask(taskId);
+      // If passing score and this was for a specific task, mark it complete in the roadmap
+      if (currentTask && data.score >= 70 && !currentTask.completed) {
+         setActiveRoadmap(prev => {
+            const newRoadmap = { ...prev };
+            newRoadmap.stages = newRoadmap.stages.map(stage => {
+              if (stage.id === currentStage.id) {
+                return {
+                  ...stage,
+                  tasks: stage.tasks.map(t => t.id === currentTask.id ? { ...t, completed: true } : t)
+                };
+              }
+              return stage;
+            });
+            return newRoadmap;
+         });
       }
+
     } catch (error) {
       console.error(error);
       alert("Failed to score test.");
@@ -89,14 +121,14 @@ export default function WeeklyTests() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto text-left flex flex-col gap-6">
+    <div className="max-w-4xl mx-auto text-left flex flex-col gap-6 pb-10">
       <div>
         <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
           <BrainCircuit className="text-violet-400 w-8 h-8" />
-          Weekly AI Evaluation
+          AI Evaluation
         </h2>
         <p className="text-gray-400 text-sm mt-1">
-          Take a dynamically generated test based on your current roadmap stage to adaptive your learning curve.
+          Take a dynamically generated test based on your current roadmap stage to prove competency.
         </p>
       </div>
 
@@ -106,11 +138,11 @@ export default function WeeklyTests() {
             <Activity size={28} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white mb-2">Ready for your Weekly Review?</h3>
-            <p className="text-gray-400 text-sm">NOVA will generate a custom test for: <strong className="text-violet-300">{currentStage.title}</strong></p>
+            <h3 className="text-xl font-bold text-white mb-2">Ready for your Evaluation?</h3>
+            <p className="text-gray-400 text-sm">NOVA will generate a custom test for: <strong className="text-violet-300">{targetTitle}</strong></p>
           </div>
           <Button onClick={generateTest} variant="glow" className="px-8 font-semibold">
-            Generate Weekly Test
+            Generate Evaluation
           </Button>
         </GlassCard>
       )}
@@ -167,7 +199,7 @@ export default function WeeklyTests() {
           ))}
 
           <div className="flex justify-end mt-4">
-            <Button onClick={submitTest} variant="glow" className="px-8 font-semibold text-sm">
+            <Button onClick={submitTest} variant="glow" className="px-8 font-semibold text-sm" disabled={Object.keys(answers).length < testData.questions.length}>
               Submit for AI Scoring <ChevronRight size={16} className="ml-1" />
             </Button>
           </div>
@@ -217,13 +249,13 @@ export default function WeeklyTests() {
             </div>
 
             <div className="flex justify-center mt-4 gap-4">
-               {taskId && testResult.score >= 70 && (
+               {targetTaskId && testResult.score >= 70 && (
                  <Button onClick={() => navigate("/roadmap")} variant="glow" className="px-6 text-xs">
-                   Task Completed! Return to Roadmap
+                   Competency Verified! Return to Roadmap
                  </Button>
                )}
-               <Button onClick={() => setTestResult(null)} variant="secondary" className="px-6 text-xs">
-                 Take Another Test
+               <Button onClick={() => navigate("/roadmap")} variant="outline" className="px-6 text-xs bg-white/5 border-white/10">
+                 Back to Roadmap
                </Button>
             </div>
           </motion.div>
