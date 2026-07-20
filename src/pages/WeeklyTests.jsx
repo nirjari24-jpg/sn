@@ -125,7 +125,7 @@ export default function WeeklyTests() {
       <div>
         <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
           <BrainCircuit className="text-violet-400 w-8 h-8" />
-          AI Evaluation
+          Review
         </h2>
         <p className="text-gray-400 text-sm mt-1">
           Take a dynamically generated test based on your current roadmap stage to prove competency.
@@ -138,11 +138,11 @@ export default function WeeklyTests() {
             <Activity size={28} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white mb-2">Ready for your Evaluation?</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Ready for your Review?</h3>
             <p className="text-gray-400 text-sm">NOVA will generate a custom test for: <strong className="text-violet-300">{targetTitle}</strong></p>
           </div>
           <Button onClick={generateTest} variant="glow" className="px-8 font-semibold">
-            Generate Evaluation
+            Generate Test
           </Button>
         </GlassCard>
       )}
@@ -153,7 +153,7 @@ export default function WeeklyTests() {
              <div className="absolute inset-0 border-2 border-transparent border-t-violet-400 rounded-full animate-spin"></div>
              <BrainCircuit size={28} />
            </div>
-           <h3 className="text-xl font-bold text-white mb-2">Compiling Evaluation Matrix...</h3>
+           <h3 className="text-xl font-bold text-white mb-2">Creating your Test...</h3>
            <p className="text-gray-400 text-sm">Generating contextual scenarios and questions.</p>
          </div>
       )}
@@ -200,7 +200,7 @@ export default function WeeklyTests() {
 
           <div className="flex justify-end mt-4">
             <Button onClick={submitTest} variant="glow" className="px-8 font-semibold text-sm" disabled={Object.keys(answers).length < testData.questions.length}>
-              Submit for AI Scoring <ChevronRight size={16} className="ml-1" />
+              Finish Test <ChevronRight size={16} className="ml-1" />
             </Button>
           </div>
         </div>
@@ -224,7 +224,7 @@ export default function WeeklyTests() {
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 mb-2">
                 {testResult.score}%
               </div>
-              <h3 className="text-lg font-bold text-white mb-4">Evaluation Complete</h3>
+              <h3 className="text-lg font-bold text-white mb-4">Review Complete</h3>
               <p className="text-gray-300 text-sm max-w-md leading-relaxed">{testResult.feedback}</p>
             </GlassCard>
 

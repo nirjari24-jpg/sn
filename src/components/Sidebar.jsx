@@ -20,13 +20,13 @@ import { useAuth } from "../contexts/AuthContext";
 import clsx from "clsx";
 
 const navItems = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/assessment", label: "AI Assessment", icon: Sparkles },
-  { path: "/career-discovery", label: "Career Discovery", icon: Compass },
+  { path: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { path: "/assessment", label: "Find Your Career", icon: Sparkles },
+  { path: "/career-discovery", label: "Career Matches", icon: Compass },
   { path: "/roadmap", label: "Roadmap", icon: Map },
   { path: "/planner", label: "Planner", icon: Calendar },
-  { path: "/weekly-tests", label: "Weekly Tests", icon: BookOpen },
-  { path: "/progress", label: "Progress", icon: BarChart3 },
+  { path: "/weekly-tests", label: "Weekly Review", icon: BookOpen },
+  { path: "/progress", label: "Your Progress", icon: BarChart3 },
   { path: "/achievements", label: "Achievements", icon: Trophy },
   { path: "/nova", label: "NOVA AI Chat", icon: MessageSquare },
   { path: "/settings", label: "Settings", icon: Settings }

@@ -107,7 +107,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
                 <h3 className="font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
                   <Target className="text-orange-500 w-4.5 h-4.5" />
-                  Today's Mission
+                  Today's Goal
                 </h3>
                 <span className="text-[10px] bg-orange-950/40 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full font-semibold">AI Generated</span>
               </div>
@@ -131,7 +131,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-xs text-gray-400 mb-4">NOVA is ready to chart today's mission.</p>
+                  <p className="text-xs text-gray-400 mb-4">NOVA is ready to plan your goal for today.</p>
                   <Link to="/planner">
                     <Button variant="outline" className="w-full text-xs">Initialize Plan</Button>
                   </Link>
@@ -196,7 +196,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
                 <h3 className="font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
                   <Sparkles className="text-blue-400 w-4.5 h-4.5" />
-                  AI Readiness Score
+                  Your Skills
                 </h3>
                 <span className="text-[10px] bg-blue-950/40 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-semibold">Live</span>
               </div>

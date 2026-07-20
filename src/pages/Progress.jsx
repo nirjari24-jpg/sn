@@ -7,7 +7,7 @@ import ProgressRing from "../components/ui/ProgressRing";
 
 export default function Progress() {
   const { xp, tasks } = useTasks();
-  const { activeRoadmap, testScores } = useCareer();
+  const { activeRoadmap, testScores, weakTopics, strongTopics, totalStudyHours, learningStreak, projectsFinished } = useCareer();
 
   // Calculate percentage of tasks completed
   const totalTasks = tasks.length;
@@ -33,10 +33,10 @@ export default function Progress() {
       <div>
         <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
           <BarChart3 className="text-violet-400 w-8 h-8" />
-          Progress & Analytics
+          Your Progress
         </h2>
         <p className="text-gray-400 text-sm mt-1">
-          Review your weekly test performance, milestone accomplishments, and learning trends.
+          Review your test scores, completed projects, and how much you have improved.
         </p>
       </div>
 
@@ -75,13 +75,73 @@ export default function Progress() {
 
         {/* Career match */}
         <GlassCard className="p-5">
-          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Active Orbit</span>
+          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Career Path</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-base font-extrabold text-white truncate max-w-full block">
               {activeRoadmap ? activeRoadmap.title : "None Active"}
             </span>
           </div>
-          <p className="text-[11px] text-gray-500 mt-2">Current specialized pathfinder.</p>
+          <p className="text-[11px] text-gray-500 mt-2">Your current goal.</p>
+        </GlassCard>
+
+        {/* Learning Streak */}
+        <GlassCard className="p-5">
+          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Learning Streak</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-3xl font-extrabold text-white">{learningStreak}</span>
+            <span className="text-xs font-bold text-orange-400">Days</span>
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">Keep up the good work!</p>
+        </GlassCard>
+
+        {/* Hours Studied */}
+        <GlassCard className="p-5">
+          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Hours Studied</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-3xl font-extrabold text-white">{totalStudyHours}</span>
+            <span className="text-xs font-bold text-blue-400">Hours</span>
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">Time spent learning.</p>
+        </GlassCard>
+
+        {/* Projects Finished */}
+        <GlassCard className="p-5">
+          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Projects Finished</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-3xl font-extrabold text-white">{projectsFinished}</span>
+            <span className="text-xs font-bold text-emerald-400">Projects</span>
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">Hands-on experience.</p>
+        </GlassCard>
+
+        {/* Tests Completed */}
+        <GlassCard className="p-5">
+          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Tests Completed</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-3xl font-extrabold text-white">{testScores.length}</span>
+            <span className="text-xs font-bold text-violet-400">Tests</span>
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">Evaluations taken.</p>
+        </GlassCard>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+        <GlassCard className="p-6">
+           <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Biggest Strength</h3>
+           <div className="flex flex-wrap gap-2">
+             {strongTopics.length > 0 ? strongTopics.map(topic => (
+               <span key={topic} className="px-3 py-1 bg-emerald-900/30 border border-emerald-500/30 text-emerald-300 rounded-full text-xs">{topic}</span>
+             )) : <span className="text-gray-500 text-xs">Keep learning to find your strengths.</span>}
+           </div>
+        </GlassCard>
+
+        <GlassCard className="p-6">
+           <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Needs More Practice</h3>
+           <div className="flex flex-wrap gap-2">
+             {weakTopics.length > 0 ? weakTopics.map(topic => (
+               <span key={topic} className="px-3 py-1 bg-amber-900/30 border border-amber-500/30 text-amber-300 rounded-full text-xs">{topic}</span>
+             )) : <span className="text-gray-500 text-xs">You are doing great right now.</span>}
+           </div>
         </GlassCard>
       </div>
 

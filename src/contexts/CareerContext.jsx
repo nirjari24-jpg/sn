@@ -44,6 +44,32 @@ export function CareerProvider({ children }) {
     return val ? JSON.parse(val) : [];
   });
 
+  // Smart Memory & Long Term Tracking
+  const [weakTopics, setWeakTopics] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_weak_topics");
+    return val ? JSON.parse(val) : [];
+  });
+
+  const [strongTopics, setStrongTopics] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_strong_topics");
+    return val ? JSON.parse(val) : [];
+  });
+
+  const [totalStudyHours, setTotalStudyHours] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_study_hours");
+    return val ? parseFloat(val) : 0;
+  });
+
+  const [learningStreak, setLearningStreak] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_streak");
+    return val ? parseInt(val, 10) : 0;
+  });
+
+  const [projectsFinished, setProjectsFinished] = useState(() => {
+    const val = localStorage.getItem("skillnova_ai_projects_finished");
+    return val ? parseInt(val, 10) : 0;
+  });
+
   useEffect(() => {
     if (assessmentProfile) localStorage.setItem("skillnova_ai_profile", JSON.stringify(assessmentProfile));
     else localStorage.removeItem("skillnova_ai_profile");
@@ -76,6 +102,26 @@ export function CareerProvider({ children }) {
     localStorage.setItem("skillnova_ai_badges", JSON.stringify(badges));
   }, [badges]);
 
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_weak_topics", JSON.stringify(weakTopics));
+  }, [weakTopics]);
+
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_strong_topics", JSON.stringify(strongTopics));
+  }, [strongTopics]);
+
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_study_hours", totalStudyHours.toString());
+  }, [totalStudyHours]);
+
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_streak", learningStreak.toString());
+  }, [learningStreak]);
+
+  useEffect(() => {
+    localStorage.setItem("skillnova_ai_projects_finished", projectsFinished.toString());
+  }, [projectsFinished]);
+
   const clearAllData = () => {
     setAssessmentProfile(null);
     setRecommendedCareers([]);
@@ -84,6 +130,11 @@ export function CareerProvider({ children }) {
     setDailyMission(null);
     setXp(0);
     setBadges([]);
+    setWeakTopics([]);
+    setStrongTopics([]);
+    setTotalStudyHours(0);
+    setLearningStreak(0);
+    setProjectsFinished(0);
   };
 
   const switchCareer = () => {
@@ -97,6 +148,18 @@ export function CareerProvider({ children }) {
     setTestScores(prev => [...prev, { ...scoreData, date: new Date().toISOString() }]);
     if (scoreData.xpEarned) {
       setXp(prev => prev + scoreData.xpEarned);
+    }
+    if (scoreData.weakAreas) {
+      setWeakTopics(prev => {
+        const newSet = new Set([...prev, ...scoreData.weakAreas]);
+        return Array.from(newSet).slice(0, 10);
+      });
+    }
+    if (scoreData.strongAreas) {
+      setStrongTopics(prev => {
+        const newSet = new Set([...prev, ...scoreData.strongAreas]);
+        return Array.from(newSet).slice(0, 10);
+      });
     }
   };
 
@@ -116,6 +179,11 @@ export function CareerProvider({ children }) {
         dailyMission, setDailyMission,
         xp, setXp,
         badges, awardBadge,
+        weakTopics, setWeakTopics,
+        strongTopics, setStrongTopics,
+        totalStudyHours, setTotalStudyHours,
+        learningStreak, setLearningStreak,
+        projectsFinished, setProjectsFinished,
         clearAllData, switchCareer
       }}
     >

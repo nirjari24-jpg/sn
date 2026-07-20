@@ -7,17 +7,13 @@ import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 
 const assessmentQuestions = [
-  "Hi! I'm NOVA, your AI Career Mentor. Before I guide you toward the right career, I need to understand your interests, skills, personality, and goals. Let's begin. What is your current Education level (Degree/Class)?",
-  "Great. What are your favorite subjects or topics to study?",
-  "What are some of your hobbies and interests outside of school or work?",
-  "What are your biggest career goals? Where do you see yourself in the future?",
-  "Do you have any prior coding experience? If so, what languages?",
-  "How would you rate your communication and leadership skills?",
-  "When faced with a complex problem, how do you usually approach it? (e.g. break it down, look for examples, ask for help)",
-  "What is your preferred work style? (e.g., Independent, Team-oriented, Fast-paced)",
-  "What languages do you speak or write fluently?",
-  "What existing technical or soft skills do you already possess?",
-  "Finally, how do you learn best? (e.g., watching videos, hands-on building, reading documentation)"
+  "Hi! I'm NOVA. I'm here to help you get ready for a great career. Let's start with a simple question: What do you want to become?",
+  "Awesome! Have you learned anything about this before?",
+  "How much time can you study every day? (e.g., 30 minutes, 2 hours)",
+  "What do you enjoy learning the most?",
+  "Do you prefer learning by watching videos, reading, or practicing hands-on?",
+  "Are you currently studying in school or college?",
+  "Finally, how would you describe your current level? (Beginner, Intermediate, or Advanced)"
 ];
 
 export default function AIAssessment() {
