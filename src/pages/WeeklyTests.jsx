@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { BrainCircuit, CheckCircle2, ChevronRight, Activity, Award } from "lucide-react";
+import { BrainCircuit, CheckCircle2, XCircle, ChevronRight, Activity, Award, Star, TrendingUp, Target, BookOpen, Repeat, Map } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 
 export default function WeeklyTests() {
-  const { activeRoadmap, setActiveRoadmap, addTestScore } = useCareer();
+  const { activeRoadmap, setActiveRoadmap, addTestScore, weakTopics, strongTopics, testScores, learningStreak, awardBadge } = useCareer();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   // We can pass a specific taskId if the user clicked "Take Test" on a specific task
@@ -19,6 +19,8 @@ export default function WeeklyTests() {
   const [testData, setTestData] = useState(null);
   const [answers, setAnswers] = useState({});
   const [testResult, setTestResult] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [calculatedMetrics, setCalculatedMetrics] = useState(null);
 
   let currentStage = activeRoadmap?.stages?.[0];
   let currentTask = null;
@@ -45,6 +47,8 @@ export default function WeeklyTests() {
     setIsGenerating(true);
     setTestResult(null);
     setAnswers({});
+    setStartTime(null);
+    setCalculatedMetrics(null);
     try {
       const res = await fetch("http://localhost:5000/api/ai/evaluate", {
         method: "POST",
@@ -52,11 +56,14 @@ export default function WeeklyTests() {
         body: JSON.stringify({ 
           stage: currentStage,
           careerTitle: activeRoadmap?.title || "Technology",
-          targetTaskTitle: currentTask?.title
+          targetTaskTitle: currentTask?.title,
+          weakTopics,
+          strongTopics
         })
       });
       const data = await res.json();
       setTestData(data);
+      setStartTime(Date.now());
     } catch (error) {
       console.error(error);
       alert("Failed to generate test. Make sure backend is running with Gemini API Key.");
@@ -67,6 +74,25 @@ export default function WeeklyTests() {
 
   const submitTest = async () => {
     setIsScoring(true);
+    const endTime = Date.now();
+    const timeTakenSeconds = Math.round((endTime - startTime) / 1000);
+    const minutes = Math.floor(timeTakenSeconds / 60);
+    const seconds = timeTakenSeconds % 60;
+    const timeTakenStr = `${minutes} min ${seconds} sec`;
+
+    let correctCount = 0;
+    testData.questions.forEach(q => {
+      if (answers[q.id] === q.correctOptionIndex) correctCount++;
+    });
+    const percentage = Math.round((correctCount / testData.questions.length) * 100);
+    const scoreFraction = `${correctCount} / ${testData.questions.length}`;
+
+    // Get previous test for Progress comparison
+    const previousTest = testScores.length > 0 ? testScores[testScores.length - 1] : null;
+    const avgScore = testScores.length > 0 ? Math.round(testScores.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / testScores.length) : percentage;
+    
+    setCalculatedMetrics({ timeTakenStr, percentage, scoreFraction, correctCount, previousTest, avgScore });
+
     try {
       const res = await fetch("http://localhost:5000/api/ai/score", {
         method: "POST",
@@ -79,10 +105,24 @@ export default function WeeklyTests() {
       });
       const data = await res.json();
       setTestResult(data);
-      addTestScore({ ...data, stageId: currentStage.id, stageTitle: targetTitle });
+      
+      const fullScoreData = { 
+        ...data, 
+        percentage, 
+        correctCount, 
+        timeTakenSeconds,
+        stageId: currentStage.id, 
+        stageTitle: targetTitle 
+      };
+      
+      addTestScore(fullScoreData);
+      
+      if (data.newBadges) {
+        data.newBadges.forEach(b => awardBadge(b));
+      }
 
       // If passing score and this was for a specific task, mark it complete in the roadmap
-      if (currentTask && data.score >= 70 && !currentTask.completed) {
+      if (currentTask && percentage >= 70 && !currentTask.completed) {
          setActiveRoadmap(prev => {
             const newRoadmap = { ...prev };
             newRoadmap.stages = newRoadmap.stages.map(stage => {
@@ -217,44 +257,212 @@ export default function WeeklyTests() {
         </div>
       )}
 
-      {testResult && (
+      {testResult && calculatedMetrics && (
         <AnimatePresence>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
-            <GlassCard className="p-8 border-emerald-500/20 text-center flex flex-col items-center" glow="none">
-              <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 mb-2">
-                {testResult.score}%
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-8">
+            
+            {/* SECTION 1: Test Summary */}
+            <GlassCard className="p-8 border-emerald-500/20 text-center" glow="none">
+              <h3 className="text-xl font-bold text-white mb-6">Test Summary</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Score</span>
+                  <span className="text-2xl font-extrabold text-white">{calculatedMetrics.scoreFraction}</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Percentage</span>
+                  <span className="text-2xl font-extrabold text-emerald-400">{calculatedMetrics.percentage}%</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Time Taken</span>
+                  <span className="text-2xl font-extrabold text-violet-400">{calculatedMetrics.timeTakenStr}</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Difficulty</span>
+                  <span className="text-2xl font-extrabold text-blue-400">Mixed</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Status</span>
+                  <span className={`text-2xl font-extrabold ${testResult.status === 'Excellent' ? 'text-emerald-400' : testResult.status === 'Good' ? 'text-blue-400' : 'text-amber-400'}`}>{testResult.status}</span>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-white mb-4">Review Complete</h3>
-              <p className="text-gray-300 text-sm max-w-md leading-relaxed">{testResult.feedback}</p>
             </GlassCard>
 
+            {/* SECTION 2: Question Review */}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-lg font-bold text-white mt-2">Question Review</h3>
+              {testData.questions.map((q, idx) => {
+                const isCorrect = answers[q.id] === q.correctOptionIndex;
+                return (
+                  <GlassCard key={q.id} className={`p-6 border-l-4 ${isCorrect ? 'border-l-emerald-500 border-white/5' : 'border-l-red-500 border-white/5'}`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <h4 className="text-sm font-bold text-gray-300">Question {idx + 1}</h4>
+                      <span className="text-xs px-2 py-1 bg-white/5 rounded text-gray-400">{q.topic} • {q.difficulty}</span>
+                    </div>
+                    <p className="text-white text-base mb-4 leading-relaxed">{q.question}</p>
+                    
+                    <div className="flex flex-col gap-3 mb-4">
+                      <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="text-xs text-emerald-400 font-bold uppercase mb-1 flex items-center gap-1"><CheckCircle2 size={14}/> Correct Answer</span>
+                        <span className="text-white text-sm">{q.options[q.correctOptionIndex]}</span>
+                      </div>
+                      {!isCorrect && (
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                          <span className="text-xs text-red-400 font-bold uppercase mb-1 flex items-center gap-1"><XCircle size={14}/> Your Answer</span>
+                          <span className="text-white text-sm">{q.options[answers[q.id]]}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 bg-[#0a081c]/50 rounded-lg border border-white/5 mt-2">
+                       <span className="text-xs text-violet-400 font-bold uppercase mb-2 flex items-center gap-1"><BrainCircuit size={14}/> Explanation</span>
+                       <p className="text-sm text-gray-300">{q.explanation}</p>
+                    </div>
+                  </GlassCard>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* SECTION 3: Performance by Topic */}
               <GlassCard className="p-6 border-white/5">
-                <h4 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-4">Areas to Improve</h4>
-                <ul className="flex flex-col gap-2 list-disc pl-4 text-sm text-amber-300/80">
-                  {testResult.weakAreas.map((area, idx) => (
-                    <li key={idx}>{area}</li>
+                <h3 className="text-lg font-bold text-white mb-4">Performance by Topic</h3>
+                <div className="flex flex-col gap-3">
+                  {Object.entries(testResult.topicPerformance || {}).map(([topic, rating]) => (
+                    <div key={topic} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                      <span className="text-sm font-semibold text-white">{topic}</span>
+                      <div className="flex gap-1">
+                        {[1,2,3,4,5].map(star => (
+                          <Star key={star} size={14} className={star <= rating ? "text-amber-400 fill-amber-400" : "text-gray-600"} />
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                  {(!testResult.topicPerformance || Object.keys(testResult.topicPerformance).length === 0) && (
+                    <span className="text-sm text-gray-400">No topic data available.</span>
+                  )}
+                </div>
               </GlassCard>
 
-              <GlassCard className="p-6 border-violet-500/20 glow-purple">
-                <h4 className="text-xs font-bold uppercase text-violet-400 tracking-wider mb-4">AI Roadmap Adjustments</h4>
-                <ul className="flex flex-col gap-2 list-disc pl-4 text-sm text-gray-300">
-                  {testResult.roadmapAdjustments.map((adj, idx) => (
-                    <li key={idx}>{adj}</li>
+              {/* SECTION 4: What You Did Well */}
+              <GlassCard className="p-6 border-emerald-500/20 glow-none">
+                <h3 className="text-lg font-bold text-emerald-400 mb-4 flex items-center gap-2"><CheckCircle2 size={20}/> What You Did Well</h3>
+                <ul className="flex flex-col gap-3">
+                  {testResult.positiveObservations?.map((obs, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-emerald-100">
+                      <span className="text-emerald-500 mt-0.5">✔</span> {obs}
+                    </li>
                   ))}
+                  {(!testResult.positiveObservations || testResult.positiveObservations.length === 0) && (
+                    <span className="text-sm text-emerald-100/50">Nothing specific to note this time.</span>
+                  )}
                 </ul>
               </GlassCard>
             </div>
 
-            <div className="flex justify-center mt-4 gap-4">
-               {targetTaskId && testResult.score >= 70 && (
-                 <Button onClick={() => navigate("/roadmap")} variant="glow" className="px-6 text-xs">
+            {/* SECTION 5: Needs More Practice */}
+            <GlassCard className="p-6 border-amber-500/20 glow-none">
+              <h3 className="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2"><Target size={20}/> Needs More Practice</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {testResult.weakTopics?.map((topic, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                    <span className="text-sm font-semibold text-amber-100">• {topic}</span>
+                    <Button variant="outline" className="px-3 py-1 text-[10px] bg-amber-500/20 border-amber-500/30 text-amber-300 hover:bg-amber-500/30 whitespace-nowrap">Practice Again</Button>
+                  </div>
+                ))}
+                {(!testResult.weakTopics || testResult.weakTopics.length === 0) && (
+                  <span className="text-sm text-gray-400">None! You're doing great.</span>
+                )}
+              </div>
+            </GlassCard>
+
+            {/* SECTION 6: NOVA's Review */}
+            <GlassCard className="p-6 border-violet-500/30 glow-purple">
+              <h3 className="text-lg font-bold text-violet-400 mb-4 flex items-center gap-2"><BrainCircuit size={20}/> NOVA's Review</h3>
+              <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">{testResult.mentorReview}</p>
+            </GlassCard>
+
+            {/* SECTION 7: Recommended Next Step */}
+            <GlassCard className="p-6 border-white/5">
+              <h3 className="text-lg font-bold text-white mb-4">Recommended Next Step</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {testResult.recommendedSteps?.map((step, idx) => {
+                   const iconMap = {
+                     continue: <Map size={24} className="text-blue-400 mb-2"/>,
+                     practice_weak: <Target size={24} className="text-amber-400 mb-2"/>,
+                     retake_test: <Repeat size={24} className="text-violet-400 mb-2"/>,
+                     watch_lesson: <BookOpen size={24} className="text-emerald-400 mb-2"/>,
+                     mini_project: <Activity size={24} className="text-pink-400 mb-2"/>
+                   };
+                   const titleMap = {
+                     continue: "Continue Roadmap",
+                     practice_weak: "Practice Weak Topics",
+                     retake_test: "Retake Test",
+                     watch_lesson: "Watch Lesson",
+                     mini_project: "Mini Project"
+                   };
+                   return (
+                     <div key={idx} className="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors cursor-pointer text-center">
+                        {iconMap[step] || <Activity size={24} className="text-gray-400 mb-2"/>}
+                        <span className="text-[10px] font-semibold text-gray-300 uppercase tracking-wide">{titleMap[step] || step.replace('_', ' ')}</span>
+                     </div>
+                   );
+                })}
+              </div>
+            </GlassCard>
+
+            {/* SECTION 8: Progress */}
+            <GlassCard className="p-6 border-white/5">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><TrendingUp size={20}/> Progress</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/5">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Previous Test</span>
+                  <span className="text-xl font-bold text-gray-300">{calculatedMetrics.previousTest ? `${calculatedMetrics.previousTest.percentage}%` : 'N/A'}</span>
+                </div>
+                <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/5">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Current Test</span>
+                  <span className="text-xl font-bold text-white">{calculatedMetrics.percentage}%</span>
+                </div>
+                <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/5">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Improvement</span>
+                  <span className={`text-xl font-bold ${calculatedMetrics.previousTest && calculatedMetrics.percentage >= calculatedMetrics.previousTest.percentage ? 'text-emerald-400' : calculatedMetrics.previousTest ? 'text-red-400' : 'text-gray-400'}`}>
+                    {calculatedMetrics.previousTest ? `${calculatedMetrics.percentage - calculatedMetrics.previousTest.percentage > 0 ? '+' : ''}${calculatedMetrics.percentage - calculatedMetrics.previousTest.percentage}%` : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/5">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Average Score</span>
+                  <span className="text-xl font-bold text-blue-400">{calculatedMetrics.avgScore}%</span>
+                </div>
+                <div className="flex flex-col bg-white/5 p-3 rounded-lg border border-white/5">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Learning Streak</span>
+                  <span className="text-xl font-bold text-orange-400">{learningStreak} Days</span>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* SECTION 9: Achievements */}
+            <GlassCard className="p-6 border-yellow-500/10">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Award size={20} className="text-yellow-400"/> Achievements</h3>
+              <div className="flex flex-wrap gap-4">
+                {testResult.newBadges?.map((badge, idx) => (
+                  <div key={idx} className="flex flex-col items-center justify-center p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-center min-w-[120px]">
+                    <Award size={28} className="text-yellow-400 mb-2"/>
+                    <span className="text-[10px] font-bold text-yellow-100 uppercase tracking-wider">{badge.title}</span>
+                  </div>
+                ))}
+                {(!testResult.newBadges || testResult.newBadges.length === 0) && (
+                  <span className="text-sm text-gray-400">Keep practicing to earn more badges!</span>
+                )}
+              </div>
+            </GlassCard>
+
+            {/* Actions */}
+            <div className="flex justify-center mt-4 gap-4 pb-10">
+               {targetTaskId && calculatedMetrics.percentage >= 70 && (
+                 <Button onClick={() => navigate("/roadmap")} variant="glow" className="px-8 font-bold">
                    Competency Verified! Return to Roadmap
                  </Button>
                )}
-               <Button onClick={() => navigate("/roadmap")} variant="outline" className="px-6 text-xs bg-white/5 border-white/10">
+               <Button onClick={() => navigate("/roadmap")} variant="outline" className="px-8 font-bold bg-white/5 border-white/10 hover:bg-white/10 text-white">
                  Back to Roadmap
                </Button>
             </div>
