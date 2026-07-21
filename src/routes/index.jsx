@@ -11,6 +11,8 @@ import Planner from "../pages/Planner";
 import Progress from "../pages/Progress";
 import Achievements from "../pages/Achievements";
 import Resources from "../pages/Resources";
+import Portfolio from "../pages/Portfolio";
+import Internships from "../pages/Internships";
 import NOVA from "../pages/NOVA";
 import Settings from "../pages/Settings";
 import AIAssessment from "../pages/AIAssessment";
@@ -62,6 +64,8 @@ export default function AppRoutes() {
         <Route path="/progress" element={<Progress />} />
         <Route path="/weekly-tests" element={<WeeklyTests />} />
         <Route path="/achievements" element={<Achievements />} />
+        <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/internships" element={<Internships />} />
         <Route path="/resources" element={<Resources />} />
         <Route path="/nova" element={<NOVA />} />
         <Route path="/settings" element={<Settings />} />

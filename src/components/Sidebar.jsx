@@ -27,6 +27,8 @@ const navItems = [
   { path: "/planner", label: "Planner", icon: Calendar },
   { path: "/weekly-tests", label: "Weekly Review", icon: BookOpen },
   { path: "/progress", label: "Your Progress", icon: BarChart3 },
+  { path: "/portfolio", label: "Portfolio", icon: Trophy },
+  { path: "/internships", label: "Internships", icon: Map },
   { path: "/achievements", label: "Achievements", icon: Trophy },
   { path: "/nova", label: "NOVA AI Chat", icon: MessageSquare },
   { path: "/settings", label: "Settings", icon: Settings }

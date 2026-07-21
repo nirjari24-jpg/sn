@@ -31,12 +31,22 @@ export default function WeeklyTests() {
     }
     if (targetTaskId) {
        for (const stage of activeRoadmap.stages) {
-         const found = stage.tasks?.find(t => t.id === targetTaskId);
-         if (found) {
-           currentStage = stage;
-           currentTask = found;
-           break;
+         if (stage.modules) {
+           for (const module of stage.modules) {
+             if (module.lessons) {
+               for (const lesson of module.lessons) {
+                 const found = lesson.tasks?.find(t => t.id === targetTaskId);
+                 if (found) {
+                   currentStage = stage;
+                   currentTask = found;
+                   break;
+                 }
+               }
+             }
+             if (currentTask) break;
+           }
          }
+         if (currentTask) break;
        }
     }
   }
@@ -121,16 +131,38 @@ export default function WeeklyTests() {
         data.newBadges.forEach(b => awardBadge(b));
       }
 
-      // If passing score and this was for a specific task, mark it complete in the roadmap
-      if (currentTask && percentage >= 70 && !currentTask.completed) {
+      // If passing score, mark complete in the roadmap
+      if (percentage >= 70) {
          setActiveRoadmap(prev => {
             const newRoadmap = { ...prev };
             newRoadmap.stages = newRoadmap.stages.map(stage => {
               if (stage.id === currentStage.id) {
-                return {
-                  ...stage,
-                  tasks: stage.tasks.map(t => t.id === currentTask.id ? { ...t, completed: true } : t)
-                };
+                if (currentTask) {
+                  return {
+                    ...stage,
+                    modules: stage.modules?.map(m => ({
+                      ...m,
+                      lessons: m.lessons?.map(l => ({
+                        ...l,
+                        tasks: l.tasks?.map(t => t.id === currentTask.id ? { ...t, completed: true } : t)
+                      }))
+                    }))
+                  };
+                } else {
+                  return {
+                    ...stage,
+                    modules: stage.modules?.map(m => ({
+                      ...m,
+                      completed: true,
+                      lessons: m.lessons?.map(l => ({
+                        ...l,
+                        completed: true,
+                        tasks: l.tasks?.map(t => ({ ...t, completed: true }))
+                      })),
+                      projects: m.projects?.map(p => ({ ...p, completed: true }))
+                    }))
+                  };
+                }
               }
               return stage;
             });

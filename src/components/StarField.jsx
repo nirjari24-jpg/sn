@@ -58,7 +58,7 @@ export default function StarField({ warp = false, density = 150 }) {
 
         // Size scaling based on proximity
         const sizeScale = (1 - star.z / width) * 2;
-        const starSize = star.size * sizeScale + 0.1;
+        const starSize = Math.max(0.1, star.size * sizeScale + 0.1);
 
         if (px >= 0 && px <= width && py >= 0 && py <= height) {
           ctx.beginPath();

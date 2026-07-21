@@ -4,7 +4,11 @@ import { useCareer } from "./CareerContext";
 const NovaContext = createContext(null);
 
 export function NovaProvider({ children }) {
-  const { activeRoadmap, assessmentProfile, testScores, dailyMission } = useCareer();
+  const { 
+    activeRoadmap, assessmentProfile, testScores, dailyMission, 
+    xp, badges, weakTopics, strongTopics, totalStudyHours, 
+    learningStreak, projectsFinished 
+  } = useCareer();
   
   const [messages, setMessages] = useState(() => {
     const stored = localStorage.getItem("skillnova_messages");
@@ -47,10 +51,15 @@ export function NovaProvider({ children }) {
       const history = currentMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'nova', content: m.text }));
       
       let systemContext = "";
-      if (activeRoadmap) systemContext += `Roadmap: ${activeRoadmap.title}. `;
-      if (assessmentProfile) systemContext += `Profile: ${assessmentProfile.technicalLevel} ${assessmentProfile.learningStyle}. `;
+      if (activeRoadmap) systemContext += `Current Roadmap: ${activeRoadmap.title}. Progress: ${xp} XP. `;
+      if (assessmentProfile) systemContext += `User Profile: Technical Level is ${assessmentProfile.technicalLevel}, Learning Style is ${assessmentProfile.learningStyle}. `;
       if (dailyMission) systemContext += `Today's Mission: ${dailyMission.missionTitle}. `;
       if (testScores.length > 0) systemContext += `Latest Test Score: ${testScores[testScores.length - 1].score}%. `;
+      if (weakTopics.length > 0) systemContext += `Weak Topics to focus on: ${weakTopics.join(', ')}. `;
+      if (strongTopics.length > 0) systemContext += `Strong Topics mastered: ${strongTopics.join(', ')}. `;
+      if (projectsFinished > 0) systemContext += `Projects Completed: ${projectsFinished}. `;
+      if (learningStreak > 0) systemContext += `Current Learning Streak: ${learningStreak} days. `;
+      if (badges.length > 0) systemContext += `Earned Badges: ${badges.map(b => b.title).join(', ')}. `;
 
       const res = await fetch('http://localhost:5000/api/ai/chat', {
         method: 'POST',
