@@ -69,7 +69,12 @@ export function NovaProvider({ children }) {
       
       if (!res.ok) throw new Error('Network error');
       const data = await res.json();
-      const fullResponse = data.reply || "No response generated.";
+      let finalResponseText = data.reply || "No response generated.";
+      
+      // Silently filter out the AI's internal thinking process
+      finalResponseText = finalResponseText.replace(/<thinking>[\s\S]*?<\/thinking>\n*/gi, '').trim();
+      
+      const fullResponse = finalResponseText;
       
       const systemMsgId = `nova-${Date.now()}`;
       const systemMsg = {

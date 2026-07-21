@@ -3,7 +3,6 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import StarField from "../components/StarField";
-import GlobalNovaChat from "../components/GlobalNovaChat";
 import { useAuth } from "../contexts/AuthContext";
 import { useTasks } from "../contexts/TaskContext";
 import { Trophy } from "lucide-react";
@@ -56,8 +55,6 @@ export default function DashboardLayout() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <GlobalNovaChat />
     </div>
   );
 }
