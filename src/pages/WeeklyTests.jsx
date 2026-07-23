@@ -5,6 +5,7 @@ import { BrainCircuit, CheckCircle2, XCircle, ChevronRight, Activity, Award, Sta
 import { useCareer } from "../contexts/CareerContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
+import { Skeleton, SkeletonText, SkeletonCard } from "../components/ui/Skeleton";
 
 export default function WeeklyTests() {
   const { activeRoadmap, setActiveRoadmap, addTestScore, weakTopics, strongTopics, testScores, learningStreak, awardBadge } = useCareer();
@@ -220,13 +221,14 @@ export default function WeeklyTests() {
       )}
 
       {isGenerating && (
-         <div className="flex flex-col items-center justify-center py-20">
-           <div className="w-16 h-16 rounded-full bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 glow-purple mb-4 relative">
-             <div className="absolute inset-0 border-2 border-transparent border-t-violet-400 rounded-full animate-spin"></div>
-             <BrainCircuit size={28} />
-           </div>
-           <h3 className="text-xl font-bold text-white mb-2">Creating your Test...</h3>
-           <p className="text-gray-400 text-sm">Generating contextual scenarios and questions.</p>
+         <div className="flex flex-col gap-6">
+           <GlassCard className="p-6 border-white/10 text-center flex flex-col items-center gap-2">
+             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-violet-400 animate-spin" />
+             <Skeleton className="h-6 w-1/3 mt-2" />
+           </GlassCard>
+           <SkeletonCard />
+           <SkeletonCard />
+           <SkeletonCard />
          </div>
       )}
 
@@ -279,13 +281,18 @@ export default function WeeklyTests() {
       )}
 
       {isScoring && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 rounded-full bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 glow-purple mb-4 relative">
-             <div className="absolute inset-0 border-2 border-transparent border-t-emerald-400 rounded-full animate-spin"></div>
-             <Award size={28} />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">Analyzing Responses...</h3>
-          <p className="text-gray-400 text-sm">Evaluating logic and accuracy to compute readiness score.</p>
+        <div className="flex flex-col gap-8 mt-6">
+          <GlassCard className="p-8 border-emerald-500/20 text-center flex flex-col items-center" glow="none">
+             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-emerald-400 animate-spin mb-4" />
+             <Skeleton className="h-6 w-1/3 mb-6" />
+             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full">
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+             </div>
+          </GlassCard>
         </div>
       )}
 

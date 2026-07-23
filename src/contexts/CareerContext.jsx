@@ -21,6 +21,19 @@ export function CareerProvider({ children }) {
   const [learningStreak, setLearningStreak] = useState(0);
   const [projectsFinished, setProjectsFinished] = useState(0);
 
+  // New Live Intelligence Profile metrics
+  const [careerReadiness, setCareerReadiness] = useState(0);
+  const [internshipReadiness, setInternshipReadiness] = useState(0);
+  const [resumeScore, setResumeScore] = useState(0);
+  const [atsScore, setAtsScore] = useState(0);
+  const [portfolioScore, setPortfolioScore] = useState(0);
+  const [skillConfidence, setSkillConfidence] = useState(0);
+  const [weeklyGrowth, setWeeklyGrowth] = useState(0);
+  const [monthlyGrowth, setMonthlyGrowth] = useState(0);
+  const [riskAreas, setRiskAreas] = useState([]);
+  const [nextBestAction, setNextBestAction] = useState("");
+  const [estimatedTimeToGoal, setEstimatedTimeToGoal] = useState("");
+
   const [isLoadingState, setIsLoadingState] = useState(true);
 
   // Load from backend on mount or when user changes
@@ -55,6 +68,18 @@ export function CareerProvider({ children }) {
           setTotalStudyHours(dbState.totalStudyHours || 0);
           setLearningStreak(dbState.learningStreak || 0);
           setProjectsFinished(dbState.projectsFinished || 0);
+
+          setCareerReadiness(dbState.careerReadiness || 0);
+          setInternshipReadiness(dbState.internshipReadiness || 0);
+          setResumeScore(dbState.resumeScore || 0);
+          setAtsScore(dbState.atsScore || 0);
+          setPortfolioScore(dbState.portfolioScore || 0);
+          setSkillConfidence(dbState.skillConfidence || 0);
+          setWeeklyGrowth(dbState.weeklyGrowth || 0);
+          setMonthlyGrowth(dbState.monthlyGrowth || 0);
+          setRiskAreas(dbState.riskAreas || []);
+          setNextBestAction(dbState.nextBestAction || "");
+          setEstimatedTimeToGoal(dbState.estimatedTimeToGoal || "");
         }
       })
       .catch(err => console.error("Failed to load user state from DB", err))
@@ -81,8 +106,31 @@ export function CareerProvider({ children }) {
   // Helper to get current state snapshot
   const getCurrentStateSnapshot = () => ({
     assessmentProfile, recommendedCareers, activeRoadmap, testScores, dailyMission,
-    xp, badges, weakTopics, strongTopics, totalStudyHours, learningStreak, projectsFinished
+    xp, badges, weakTopics, strongTopics, totalStudyHours, learningStreak, projectsFinished,
+    careerReadiness, internshipReadiness, resumeScore, atsScore, portfolioScore, skillConfidence,
+    weeklyGrowth, monthlyGrowth, riskAreas, nextBestAction, estimatedTimeToGoal
   });
+
+  useEffect(() => {
+    if (!assessmentProfile) return;
+
+    let intReadiness = 0;
+    if (activeRoadmap) intReadiness += 20;
+    if (projectsFinished > 0) intReadiness += Math.min(40, projectsFinished * 15);
+    if (testScores.length > 0) {
+      const avgScore = testScores.reduce((acc, curr) => acc + curr.score, 0) / testScores.length;
+      if (avgScore > 70) intReadiness += 40;
+      else intReadiness += 20;
+    }
+    setInternshipReadiness(intReadiness);
+
+    const confidence = testScores.length > 0 
+      ? Math.round(testScores.reduce((acc, curr) => acc + curr.score, 0) / testScores.length)
+      : (assessmentProfile?.analysis?.score || 0);
+    setSkillConfidence(confidence);
+
+    setCareerReadiness((assessmentProfile?.analysis?.score || 0) + (activeRoadmap ? 5 : 0));
+  }, [activeRoadmap, projectsFinished, testScores, assessmentProfile]);
 
   // Watch for state changes and sync (using a simple debounce effect is tricky with many variables, 
   // so we'll sync manually on important actions or use an effect)
@@ -95,7 +143,9 @@ export function CareerProvider({ children }) {
     }
   }, [
     assessmentProfile, recommendedCareers, activeRoadmap, testScores, dailyMission,
-    xp, badges, weakTopics, strongTopics, totalStudyHours, learningStreak, projectsFinished
+    xp, badges, weakTopics, strongTopics, totalStudyHours, learningStreak, projectsFinished,
+    careerReadiness, internshipReadiness, resumeScore, atsScore, portfolioScore, skillConfidence,
+    weeklyGrowth, monthlyGrowth, riskAreas, nextBestAction, estimatedTimeToGoal
   ]);
 
   const clearAllData = () => {
@@ -111,6 +161,18 @@ export function CareerProvider({ children }) {
     setTotalStudyHours(0);
     setLearningStreak(0);
     setProjectsFinished(0);
+    
+    setCareerReadiness(0);
+    setInternshipReadiness(0);
+    setResumeScore(0);
+    setAtsScore(0);
+    setPortfolioScore(0);
+    setSkillConfidence(0);
+    setWeeklyGrowth(0);
+    setMonthlyGrowth(0);
+    setRiskAreas([]);
+    setNextBestAction("");
+    setEstimatedTimeToGoal("");
   };
 
   const switchCareer = () => {
@@ -159,8 +221,19 @@ export function CareerProvider({ children }) {
         totalStudyHours, setTotalStudyHours,
         learningStreak, setLearningStreak,
         projectsFinished, setProjectsFinished,
+        careerReadiness, setCareerReadiness,
+        internshipReadiness, setInternshipReadiness,
+        resumeScore, setResumeScore,
+        atsScore, setAtsScore,
+        portfolioScore, setPortfolioScore,
+        skillConfidence, setSkillConfidence,
+        weeklyGrowth, setWeeklyGrowth,
+        monthlyGrowth, setMonthlyGrowth,
+        riskAreas, setRiskAreas,
+        nextBestAction, setNextBestAction,
+        estimatedTimeToGoal, setEstimatedTimeToGoal,
         clearAllData, switchCareer,
-        isLoadingState
+        isLoadingState, getCurrentStateSnapshot
       }}
     >
       {children}

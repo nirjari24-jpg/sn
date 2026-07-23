@@ -7,7 +7,7 @@ export function NovaProvider({ children }) {
   const { 
     activeRoadmap, assessmentProfile, testScores, dailyMission, 
     xp, badges, weakTopics, strongTopics, totalStudyHours, 
-    learningStreak, projectsFinished 
+    learningStreak, projectsFinished, getCurrentStateSnapshot
   } = useCareer();
   
   const [messages, setMessages] = useState(() => {
@@ -50,16 +50,7 @@ export function NovaProvider({ children }) {
     try {
       const history = currentMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'nova', content: m.text }));
       
-      let systemContext = "";
-      if (activeRoadmap) systemContext += `Current Roadmap: ${activeRoadmap.title}. Progress: ${xp} XP. `;
-      if (assessmentProfile) systemContext += `User Profile: Technical Level is ${assessmentProfile.technicalLevel}, Learning Style is ${assessmentProfile.learningStyle}. `;
-      if (dailyMission) systemContext += `Today's Mission: ${dailyMission.missionTitle}. `;
-      if (testScores.length > 0) systemContext += `Latest Test Score: ${testScores[testScores.length - 1].score}%. `;
-      if (weakTopics.length > 0) systemContext += `Weak Topics to focus on: ${weakTopics.join(', ')}. `;
-      if (strongTopics.length > 0) systemContext += `Strong Topics mastered: ${strongTopics.join(', ')}. `;
-      if (projectsFinished > 0) systemContext += `Projects Completed: ${projectsFinished}. `;
-      if (learningStreak > 0) systemContext += `Current Learning Streak: ${learningStreak} days. `;
-      if (badges.length > 0) systemContext += `Earned Badges: ${badges.map(b => b.title).join(', ')}. `;
+      const systemContext = JSON.stringify(getCurrentStateSnapshot());
 
       const res = await fetch('http://localhost:5000/api/ai/chat', {
         method: 'POST',
@@ -67,9 +58,21 @@ export function NovaProvider({ children }) {
         body: JSON.stringify({ message: text, history, systemContext })
       });
       
-      if (!res.ok) throw new Error('Network error');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Network error (${res.status})`);
+      }
       const data = await res.json();
       let finalResponseText = data.reply || "No response generated.";
+      
+      try {
+        const parsedReply = JSON.parse(finalResponseText);
+        if (parsedReply && parsedReply.reply) {
+          finalResponseText = parsedReply.reply;
+        }
+      } catch (e) {
+        // Not JSON, leave as is
+      }
       
       // Silently filter out the AI's internal thinking process
       finalResponseText = finalResponseText.replace(/<thinking>[\s\S]*?<\/thinking>\n*/gi, '').trim();
@@ -110,7 +113,7 @@ export function NovaProvider({ children }) {
       setMessages((prev) => [...prev, {
         id: `nova-${Date.now()}`,
         sender: "nova",
-        text: "Error communicating with NOVA AI Server. Please ensure the backend server and Ollama are running.",
+        text: `⚠️ **System Alert:** ${err.message || 'Error communicating with NOVA server.'} Please check your connection or API keys.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     }

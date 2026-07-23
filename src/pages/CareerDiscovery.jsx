@@ -6,11 +6,12 @@ import { useCareer } from "../contexts/CareerContext";
 import { useTasks } from "../contexts/TaskContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
+import { SkeletonCard } from "../components/ui/Skeleton";
 
 export default function CareerDiscovery() {
   const navigate = useNavigate();
-  const { assessmentProfile, recommendedCareers, setRecommendedCareers, setActiveRoadmap, clearAllData } = useCareer();
-  const { switchCareerTrack, careerTrack } = useTasks();
+  const { assessmentProfile, recommendedCareers, setRecommendedCareers, activeRoadmap, setActiveRoadmap, clearAllData } = useCareer();
+  const { switchCareerTrack } = useTasks();
   
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
@@ -90,33 +91,26 @@ export default function CareerDiscovery() {
       </div>
 
       <AnimatePresence mode="wait">
-        {isDiscovering ? (
+        {(isDiscovering || isGeneratingRoadmap) ? (
           <motion.div
             key="loading"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col gap-6"
           >
-            <div className="w-16 h-16 rounded-full bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 glow-purple mb-4 relative">
-               <div className="absolute inset-0 border-2 border-transparent border-t-violet-400 rounded-full animate-spin"></div>
-               <Compass size={28} />
+            <div className="p-6 text-center lg:text-left">
+               <h3 className="text-xl font-bold text-white mb-2 flex items-center justify-center lg:justify-start gap-2">
+                 <Loader className="animate-spin text-violet-400" size={20} />
+                 {isDiscovering ? "Calculating Optimal Trajectories..." : "Synthesizing Personal Roadmap..."}
+               </h3>
+               <p className="text-gray-400 text-sm">{isDiscovering ? "NOVA is matching your skill signature with industry demand vectors." : "Generating beginner-to-advanced curriculum exclusively for you."}</p>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Calculating Optimal Trajectories...</h3>
-            <p className="text-gray-400 text-sm">NOVA is matching your skill signature with industry demand vectors.</p>
-          </motion.div>
-        ) : isGeneratingRoadmap ? (
-          <motion.div
-            key="generating"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-20"
-          >
-            <div className="w-16 h-16 rounded-full bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 glow-blue mb-4 relative">
-               <div className="absolute inset-0 border-2 border-transparent border-t-indigo-400 rounded-full animate-spin"></div>
-               <Star size={28} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Synthesizing Personal Roadmap...</h3>
-            <p className="text-gray-400 text-sm">Generating beginner-to-advanced curriculum exclusively for you.</p>
           </motion.div>
         ) : (
           <motion.div
@@ -162,14 +156,10 @@ export default function CareerDiscovery() {
                     </div>
 
                     {/* Stats highlights */}
-                    <div className="grid grid-cols-2 gap-3 my-6">
+                    <div className="grid grid-cols-1 gap-3 my-6">
                       <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
                         <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block mb-1">Growth</span>
                         <span className="text-sm font-bold text-white">{result.growthRate}</span>
-                      </div>
-                      <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
-                        <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block mb-1">Salary</span>
-                        <span className="text-sm font-bold text-white">{result.salary}</span>
                       </div>
                     </div>
 
@@ -193,10 +183,10 @@ export default function CareerDiscovery() {
                   <div className="flex flex-col gap-3 pt-4 border-t border-white/5 mt-auto">
                     <Button
                       onClick={() => handleActivateTrack(result)}
-                      variant={careerTrack === result.id ? "outline" : "glow"}
+                      variant={activeRoadmap?.id === result.id ? "outline" : "glow"}
                       className="w-full font-semibold"
                     >
-                      {careerTrack === result.id ? (
+                      {activeRoadmap?.id === result.id ? (
                         <span className="flex items-center justify-center gap-1.5">
                           <Check size={16} /> Roadmap Active
                         </span>

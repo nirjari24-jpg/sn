@@ -32,7 +32,10 @@ export default function Dashboard() {
     xp,
     badges,
     testScores,
-    assessmentProfile
+    assessmentProfile,
+    careerReadiness,
+    internshipReadiness,
+    skillConfidence
   } = useCareer();
 
   const [activeQuote, setActiveQuote] = useState({ text: "", author: "" });
@@ -150,7 +153,11 @@ export default function Dashboard() {
                   <TrendingUp className="text-violet-400 w-4.5 h-4.5" />
                   Career Roadmap
                 </h3>
-                <span className="text-[10px] text-gray-400 font-bold">Track Active</span>
+                {activeRoadmap ? (
+                  <span className="text-[10px] text-violet-400 font-bold border border-violet-500/20 px-2 py-0.5 rounded-full bg-violet-950/40">Track Active</span>
+                ) : (
+                  <span className="text-[10px] text-gray-500 font-bold">No Track</span>
+                )}
               </div>
 
               {activeRoadmap ? (
@@ -196,21 +203,21 @@ export default function Dashboard() {
               <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
                 <h3 className="font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
                   <Sparkles className="text-blue-400 w-4.5 h-4.5" />
-                  Your Skills
+                  Live Intelligence
                 </h3>
                 <span className="text-[10px] bg-blue-950/40 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-semibold">Live</span>
               </div>
 
               <div className="flex items-center justify-around gap-4 py-2">
-                <ProgressRing percentage={aiScore} size={110} />
+                <ProgressRing percentage={careerReadiness || aiScore} size={110} />
                 <div className="flex flex-col gap-2.5 text-left">
                   <div>
-                    <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Learning Style</span>
-                    <h4 className="text-sm font-bold text-white truncate max-w-[140px]">{assessmentProfile?.analysis?.learningStyle || 'Analyzing...'}</h4>
+                    <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Internship Readiness</span>
+                    <h4 className="text-sm font-bold text-white truncate max-w-[140px]">{internshipReadiness || 0}%</h4>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Base Technical Level</span>
-                    <h4 className="text-sm font-bold text-violet-400 truncate max-w-[140px]">{assessmentProfile?.analysis?.technicalLevel || 'TBD'}</h4>
+                    <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Skill Confidence</span>
+                    <h4 className="text-sm font-bold text-violet-400 truncate max-w-[140px]">{skillConfidence || 0}%</h4>
                   </div>
                 </div>
               </div>

@@ -5,30 +5,8 @@ import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 
 export default function Internships() {
-  const { activeRoadmap, projectsFinished, testScores } = useCareer();
-  const [isReady, setIsReady] = useState(false);
-  const [readinessScore, setReadinessScore] = useState(0);
-
-  useEffect(() => {
-    // Calculate readiness
-    let score = 0;
-    if (activeRoadmap) {
-      score += 20; // Has a roadmap
-    }
-    if (projectsFinished > 0) {
-      score += Math.min(40, projectsFinished * 15);
-    }
-    if (testScores.length > 0) {
-      const avgScore = testScores.reduce((acc, curr) => acc + curr.score, 0) / testScores.length;
-      if (avgScore > 70) score += 40;
-      else score += 20;
-    }
-    
-    setReadinessScore(score);
-    if (score >= 80) {
-      setIsReady(true);
-    }
-  }, [activeRoadmap, projectsFinished, testScores]);
+  const { activeRoadmap, internshipReadiness } = useCareer();
+  const isReady = internshipReadiness >= 80;
 
   const mockInternships = [
     { company: "TechNova Inc.", role: "Junior Developer Intern", location: "Remote", skills: "React, Node.js", match: "95%" },
@@ -53,10 +31,10 @@ export default function Internships() {
           <Lock className="w-12 h-12 text-gray-600 mb-4" />
           <h3 className="text-xl font-bold text-gray-300 mb-2">Internship Finder Locked</h3>
           <p className="text-gray-500 text-sm max-w-md mb-6">
-            You currently have a {readinessScore}% readiness score. Complete more roadmap modules, projects, and weekly tests to reach 80% and unlock real opportunities.
+            You currently have a {internshipReadiness}% readiness score. Complete more roadmap modules, projects, and weekly tests to reach 80% and unlock real opportunities.
           </p>
-          <div className="w-64 h-2 bg-gray-900 rounded-full overflow-hidden">
-            <div className="h-full bg-violet-500 transition-all duration-1000" style={{ width: `${readinessScore}%` }}></div>
+          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+            <div className="h-full bg-violet-500 transition-all duration-1000" style={{ width: `${internshipReadiness}%` }}></div>
           </div>
         </GlassCard>
       ) : (
