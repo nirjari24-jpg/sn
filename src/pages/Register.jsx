@@ -42,9 +42,14 @@ export default function Register() {
     setErrors({});
     setIsLoading(true);
 
-    await register(email, password, fullName);
-    setIsLoading(false);
-    navigate("/dashboard");
+    try {
+      await register(email, password, fullName);
+      setIsLoading(false);
+      navigate("/dashboard");
+    } catch (err) {
+      setIsLoading(false);
+      setErrors({ email: err.message || "Failed to register" });
+    }
   };
 
   return (

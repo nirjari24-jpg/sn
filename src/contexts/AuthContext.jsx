@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { mockUserData } from "../data/mockData";
 
 const AuthContext = createContext(null);
@@ -9,65 +10,84 @@ export function AuthProvider({ children }) {
   const [isTransitioning, setIsTransitioning] = useState(false); // Controls warp speed in StarField
   const [loading, setLoading] = useState(true);
 
+  // Helper to merge supabase user with our mock data so the UI doesn't break
+  const buildUser = (sbUser) => {
+    if (!sbUser) return null;
+    return {
+      ...mockUserData,
+      id: sbUser.id,
+      email: sbUser.email,
+      name: sbUser.user_metadata?.full_name || sbUser.email.split("@")[0].charAt(0).toUpperCase() + sbUser.email.split("@")[0].slice(1),
+    };
+  };
+
   useEffect(() => {
-    // Check localStorage for session
-    const storedUser = localStorage.getItem("skillnova_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(buildUser(session?.user));
+      setIsAuthenticated(!!session?.user);
+      setLoading(false);
+    });
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(buildUser(session?.user));
+      setIsAuthenticated(!!session?.user);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (email, password) => {
-    return new Promise((resolve) => {
-      // Simulate API lag
-      setTimeout(() => {
-        // Set transition warp state to true (stars move fast!)
-        setIsTransitioning(true);
-        
-        // After 1200ms of star-travel, finish login
+  const login = async (email, password) => {
+    setIsTransitioning(true);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    return new Promise((resolve, reject) => {
+      if (error) {
+        setIsTransitioning(false);
+        reject(error);
+      } else {
         setTimeout(() => {
-          const loggedInUser = {
-            ...mockUserData,
-            email: email,
-            name: email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1)
-          };
-          setUser(loggedInUser);
-          setIsAuthenticated(true);
-          localStorage.setItem("skillnova_user", JSON.stringify(loggedInUser));
           setIsTransitioning(false);
           resolve(true);
-        }, 1500);
-      }, 800);
+        }, 1200); // Keep warp animation duration
+      }
     });
   };
 
-  const register = (email, password, fullName) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        setIsTransitioning(true);
-        
+  const register = async (email, password, fullName) => {
+    setIsTransitioning(true);
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
+    });
+
+    return new Promise((resolve, reject) => {
+      if (error) {
+        setIsTransitioning(false);
+        reject(error);
+      } else {
         setTimeout(() => {
-          const registeredUser = {
-            ...mockUserData,
-            email: email,
-            name: fullName
-          };
-          setUser(registeredUser);
-          setIsAuthenticated(true);
-          localStorage.setItem("skillnova_user", JSON.stringify(registeredUser));
           setIsTransitioning(false);
           resolve(true);
-        }, 1500);
-      }, 800);
+        }, 1200); // Keep warp animation duration
+      }
     });
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem("skillnova_user");
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (

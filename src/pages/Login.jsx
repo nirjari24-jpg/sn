@@ -34,10 +34,15 @@ export default function Login() {
     setErrors({});
     setIsLoading(true);
     
-    // Triggers the login flow (which runs the warp speed animation)
-    await login(email, password);
-    setIsLoading(false);
-    navigate("/dashboard");
+    try {
+      // Triggers the login flow (which runs the warp speed animation)
+      await login(email, password);
+      setIsLoading(false);
+      navigate("/dashboard");
+    } catch (err) {
+      setIsLoading(false);
+      setErrors({ email: err.message || "Failed to log in" });
+    }
   };
 
   return (
