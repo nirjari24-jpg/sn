@@ -1,5 +1,6 @@
 import aiService from '../services/aiService.js';
 import memoryService from '../memory/memoryService.js';
+import { AssessmentResult, CareerRecommendation, Roadmap as RoadmapModel, Planner as PlannerModel } from '../models/schemas.js';
 
 export const chat = async (req, res) => {
   try {
@@ -25,14 +26,13 @@ export const assessmentNext = async (req, res) => {
     const { answers } = req.body;
     const response = await aiService.processAssessmentNext(req.userId, answers);
     
-    // If completed, save the profile to Supabase assessment_results
+    // If completed, save the profile to MongoDB assessment_results
     if (response.isComplete && response.profileAnalysis) {
-      const { supabase } = await import('../config/supabase.js');
-      await supabase.from('assessment_results').upsert({
-        user_id: req.userId,
-        answers,
-        analysis: response.profileAnalysis
-      }, { onConflict: 'user_id' });
+      await AssessmentResult.findOneAndUpdate(
+        { user_id: req.userId },
+        { answers, analysis: response.profileAnalysis },
+        { upsert: true, new: true }
+      );
     }
     
     res.json(response);
@@ -48,11 +48,11 @@ export const discover = async (req, res) => {
     const response = await aiService.discoverCareers(req.userId, profile);
     
     // Save to career_recommendations
-    const { supabase } = await import('../config/supabase.js');
-    await supabase.from('career_recommendations').upsert({
-      user_id: req.userId,
-      matches: response.matches
-    }, { onConflict: 'user_id' });
+    await CareerRecommendation.findOneAndUpdate(
+      { user_id: req.userId },
+      { matches: response.matches },
+      { upsert: true, new: true }
+    );
     
     res.json(response);
   } catch (error) {
@@ -67,8 +67,7 @@ export const roadmap = async (req, res) => {
     const response = await aiService.generateRoadmap(req.userId, careerTitle || 'Technology');
     
     // Save to roadmaps
-    const { supabase } = await import('../config/supabase.js');
-    await supabase.from('roadmaps').insert({
+    await RoadmapModel.create({
       user_id: req.userId,
       career_id: careerId,
       title: response.title || careerTitle,
@@ -87,8 +86,7 @@ export const planner = async (req, res) => {
     const { activeRoadmap, xp } = req.body;
     const response = await aiService.generatePlanner(req.userId, activeRoadmap, xp);
     
-    const { supabase } = await import('../config/supabase.js');
-    await supabase.from('planner').insert({
+    await PlannerModel.create({
       user_id: req.userId,
       mission_title: response.missionTitle,
       tip: response.tip,
@@ -101,6 +99,7 @@ export const planner = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate planner' });
   }
 };
+
 
 export const evaluate = async (req, res) => {
   try {

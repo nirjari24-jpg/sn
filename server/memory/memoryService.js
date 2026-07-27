@@ -1,33 +1,26 @@
-import { supabase } from '../config/supabase.js';
 import { ai } from '../config/gemini.js';
 import { MEMORY_SUMMARIZATION_PROMPT } from '../prompts/systemPrompts.js';
+import { ConversationMemory, ChatHistory, UserProfile } from '../models/schemas.js';
+import User from '../models/User.js';
 
 /**
- * Service to manage user memory in Supabase and summarize it using Gemini when it gets too large.
+ * Service to manage user memory in MongoDB and summarize it using Gemini when it gets too large.
  */
 class MemoryService {
   
   async getMemory(userId) {
-    const { data, error } = await supabase
-      .from('conversation_memory')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
+    try {
+      const data = await ConversationMemory.findOne({ user_id: userId });
+      return data || { summary: "New user.", key_facts: {} };
+    } catch (error) {
       console.error('Error fetching memory:', error);
+      return { summary: "New user.", key_facts: {} };
     }
-    
-    return data || { summary: "New user.", key_facts: {} };
   }
 
   async updateMemory(userId, recentContext) {
     const currentMemory = await this.getMemory(userId);
     
-    // We only summarize every X interactions in a real prod app to save tokens,
-    // but for this implementation we will summarize on important milestones
-    // or just append to it. For this hackathon version, let's do a fast AI summarization.
-
     try {
       const prompt = `
         ${MEMORY_SUMMARIZATION_PROMPT}
@@ -56,72 +49,70 @@ class MemoryService {
         return;
       }
 
-      const { error } = await supabase
-        .from('conversation_memory')
-        .upsert({
-          user_id: userId,
+      await ConversationMemory.findOneAndUpdate(
+        { user_id: userId },
+        {
           summary: updatedMemory.summary,
           key_facts: updatedMemory.key_facts,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-
-      if (error) {
-        console.error('Error saving updated memory:', error);
-      }
+          updated_at: new Date()
+        },
+        { upsert: true, new: true }
+      );
     } catch (err) {
       console.error('Error in memory summarization:', err);
     }
   }
 
   async saveChatMessage(userId, sender, message) {
-    const { error } = await supabase
-      .from('chat_history')
-      .insert({
+    try {
+      await ChatHistory.create({
         user_id: userId,
         sender,
         message
       });
-      
-    if (error) console.error('Error saving chat:', error);
+    } catch (error) {
+      console.error('Error saving chat:', error);
+    }
   }
 
   async getChatHistory(userId, limit = 20) {
-    const { data, error } = await supabase
-      .from('chat_history')
-      .select('sender, message, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
+    try {
+      const data = await ChatHistory.find({ user_id: userId })
+        .sort({ created_at: -1 })
+        .limit(limit);
+      
+      // Reverse to chronological order
+      return data.reverse().map(row => ({
+        role: row.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: row.message }]
+      }));
+    } catch (error) {
       console.error('Error fetching chat history:', error);
       return [];
     }
-    
-    // Reverse to chronological order
-    return data.reverse().map(row => ({
-      role: row.sender === 'user' ? 'user' : 'model',
-      parts: [{ text: row.message }]
-    }));
   }
 
   // Fallback function to sync the old big state object if frontend still relies on it
   async syncLegacyState(userId, stateUpdates) {
-    // First try to get the profile email (since old table uses email as PK)
-    const { data: profile } = await supabase.from('profiles').select('email').eq('id', userId).single();
-    if (!profile?.email) return;
+    try {
+      const profile = await User.findById(userId);
+      if (!profile?.email) return;
 
-    // Get current state
-    const { data: oldData } = await supabase.from('user_profiles').select('state').eq('email', profile.email).single();
-    
-    const currentState = oldData?.state || {};
-    const newState = { ...currentState, ...stateUpdates };
+      const oldData = await UserProfile.findOne({ email: profile.email });
+      const currentState = oldData?.state || {};
+      const newState = { ...currentState, ...stateUpdates };
 
-    await supabase.from('user_profiles').upsert({
-      email: profile.email,
-      state: newState,
-      last_active: new Date().toISOString()
-    });
+      await UserProfile.findOneAndUpdate(
+        { email: profile.email },
+        {
+          state: newState,
+          last_active: new Date()
+        },
+        { upsert: true, new: true }
+      );
+    } catch (error) {
+      console.error('Error syncing legacy state:', error);
+    }
   }
 }
 

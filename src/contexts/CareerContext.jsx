@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
-import { supabase } from "../lib/supabase";
 
 const CareerContext = createContext(null);
+const API_URL = "http://localhost:5001/api/auth";
 
 export function CareerProvider({ children }) {
   const { user } = useAuth();
@@ -45,15 +45,17 @@ export function CareerProvider({ children }) {
     
     setIsLoadingState(true);
     
-    supabase
-      .from('user_profiles')
-      .select('state')
-      .eq('email', user.email)
-      .single()
-      .then(({ data, error }) => {
-        if (error && error.code !== 'PGRST116') {
-          console.error("Supabase fetch error:", error);
-        }
+    const token = localStorage.getItem("skillnova_token");
+    if (!token) {
+      setIsLoadingState(false);
+      return;
+    }
+
+    fetch(`${API_URL}/state`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
         if (data && data.state) {
           const dbState = data.state;
           setAssessmentProfile(dbState.assessmentProfile || null);
@@ -90,16 +92,20 @@ export function CareerProvider({ children }) {
   const syncStateToDB = useCallback(async (newState) => {
     if (!user?.email) return;
     
+    const token = localStorage.getItem("skillnova_token");
+    if (!token) return;
+
     try {
-      await supabase
-        .from('user_profiles')
-        .upsert({ 
-          email: user.email, 
-          state: newState,
-          last_active: new Date().toISOString()
-        });
+      await fetch(`${API_URL}/state`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ state: newState })
+      });
     } catch (err) {
-      console.error("Failed to sync state to Supabase", err);
+      console.error("Failed to sync state to DB", err);
     }
   }, [user?.email]);
 

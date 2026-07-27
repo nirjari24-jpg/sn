@@ -1,99 +1,130 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
 import { mockUserData } from "../data/mockData";
 
 const AuthContext = createContext(null);
+const API_URL = "http://localhost:5001/api/auth";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false); // Controls warp speed in StarField
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Helper to merge supabase user with our mock data so the UI doesn't break
-  const buildUser = (sbUser) => {
-    if (!sbUser) return null;
+  const buildUser = (apiUser) => {
+    if (!apiUser) return null;
     return {
       ...mockUserData,
-      id: sbUser.id,
-      email: sbUser.email,
-      name: sbUser.user_metadata?.full_name || sbUser.email.split("@")[0].charAt(0).toUpperCase() + sbUser.email.split("@")[0].slice(1),
+      id: apiUser.id,
+      email: apiUser.email,
+      name: apiUser.name,
     };
   };
 
   useEffect(() => {
-    // Generate fallback UUID for anonymous usage
     if (!localStorage.getItem('skillnova_uuid')) {
       const fallbackUuid = 'anon-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       localStorage.setItem('skillnova_uuid', fallbackUuid);
     }
 
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(buildUser(session?.user));
-      setIsAuthenticated(!!session?.user);
-      setLoading(false);
-    });
+    const verifyUser = async () => {
+      const token = localStorage.getItem("skillnova_token");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_URL}/me`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        if (res.ok) {
+          const userData = await res.json();
+          setUser(buildUser(userData));
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem("skillnova_token");
+        }
+      } catch (error) {
+        console.error("Auth verification failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Listen to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(buildUser(session?.user));
-      setIsAuthenticated(!!session?.user);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    verifyUser();
   }, []);
 
   const login = async (email, password) => {
     setIsTransitioning(true);
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    return new Promise((resolve, reject) => {
-      if (error) {
-        setIsTransitioning(false);
-        reject(error);
-      } else {
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      localStorage.setItem("skillnova_token", data.token);
+      setUser(buildUser(data));
+      setIsAuthenticated(true);
+      
+      return new Promise((resolve) => {
         setTimeout(() => {
           setIsTransitioning(false);
           resolve(true);
-        }, 1200); // Keep warp animation duration
-      }
-    });
+        }, 1200);
+      });
+    } catch (error) {
+      setIsTransitioning(false);
+      throw error;
+    }
   };
 
   const register = async (email, password, fullName) => {
     setIsTransitioning(true);
     
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        }
+    try {
+      const res = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, full_name: fullName })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed');
       }
-    });
-
-    return new Promise((resolve, reject) => {
-      if (error) {
-        setIsTransitioning(false);
-        reject(error);
-      } else {
+      
+      localStorage.setItem("skillnova_token", data.token);
+      setUser(buildUser(data));
+      setIsAuthenticated(true);
+      
+      return new Promise((resolve) => {
         setTimeout(() => {
           setIsTransitioning(false);
           resolve(true);
-        }, 1200); // Keep warp animation duration
-      }
-    });
+        }, 1200);
+      });
+    } catch (error) {
+      setIsTransitioning(false);
+      throw error;
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem("skillnova_token");
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   return (
