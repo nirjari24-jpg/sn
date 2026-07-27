@@ -167,7 +167,7 @@ export default function Dashboard() {
                       <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Current Stage</span>
                       <h4 className="text-sm font-bold text-white truncate">{currentStageTitle}</h4>
                     </div>
-                    <span className="text-xs font-bold text-violet-400">{activeRoadmap.stages.length} Stages Total</span>
+                    <span className="text-xs font-bold text-violet-400">{activeRoadmap.stages?.length || 0} Stages Total</span>
                   </div>
                   
                   <div className="w-full bg-white/5 rounded-full h-2">

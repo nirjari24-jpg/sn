@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useCareer } from "./CareerContext";
+import { useAuth } from "./AuthContext";
 
 const NovaContext = createContext(null);
 
@@ -9,6 +10,7 @@ export function NovaProvider({ children }) {
     xp, badges, weakTopics, strongTopics, totalStudyHours, 
     learningStreak, projectsFinished, getCurrentStateSnapshot
   } = useCareer();
+  const { user } = useAuth();
   
   const [messages, setMessages] = useState(() => {
     const stored = localStorage.getItem("skillnova_messages");
@@ -52,9 +54,12 @@ export function NovaProvider({ children }) {
       
       const systemContext = JSON.stringify(getCurrentStateSnapshot());
 
-      const res = await fetch('http://localhost:5000/api/ai/chat', {
+      const res = await fetch('http://localhost:5001/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
         body: JSON.stringify({ message: text, history, systemContext })
       });
       

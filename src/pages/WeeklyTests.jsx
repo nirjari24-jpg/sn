@@ -3,12 +3,14 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrainCircuit, CheckCircle2, XCircle, ChevronRight, Activity, Award, Star, TrendingUp, Target, BookOpen, Repeat, Map } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
+import { useAuth } from "../contexts/AuthContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 import { Skeleton, SkeletonText, SkeletonCard } from "../components/ui/Skeleton";
 
 export default function WeeklyTests() {
   const { activeRoadmap, setActiveRoadmap, addTestScore, weakTopics, strongTopics, testScores, learningStreak, awardBadge } = useCareer();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   // We can pass a specific taskId if the user clicked "Take Test" on a specific task
@@ -61,9 +63,12 @@ export default function WeeklyTests() {
     setStartTime(null);
     setCalculatedMetrics(null);
     try {
-      const res = await fetch("http://localhost:5000/api/ai/evaluate", {
+      const res = await fetch("http://localhost:5001/api/ai/evaluate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
         body: JSON.stringify({ 
           stage: currentStage,
           careerTitle: activeRoadmap?.title || "Technology",
@@ -105,9 +110,12 @@ export default function WeeklyTests() {
     setCalculatedMetrics({ timeTakenStr, percentage, scoreFraction, correctCount, previousTest, avgScore });
 
     try {
-      const res = await fetch("http://localhost:5000/api/ai/score", {
+      const res = await fetch("http://localhost:5001/api/ai/score", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
         body: JSON.stringify({ 
           test: testData,
           answers: answers,

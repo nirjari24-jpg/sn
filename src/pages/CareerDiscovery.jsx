@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Compass, Check, ArrowRight, RefreshCw, Star, Loader } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
 import { useTasks } from "../contexts/TaskContext";
+import { useAuth } from "../contexts/AuthContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 import { SkeletonCard } from "../components/ui/Skeleton";
@@ -12,6 +13,7 @@ export default function CareerDiscovery() {
   const navigate = useNavigate();
   const { assessmentProfile, recommendedCareers, setRecommendedCareers, activeRoadmap, setActiveRoadmap, clearAllData } = useCareer();
   const { switchCareerTrack } = useTasks();
+  const { user } = useAuth();
   
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
@@ -35,9 +37,12 @@ export default function CareerDiscovery() {
   const discoverCareers = async (profile) => {
     setIsDiscovering(true);
     try {
-      const res = await fetch("http://localhost:5000/api/ai/discover", {
+      const res = await fetch("http://localhost:5001/api/ai/discover", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
         body: JSON.stringify({ profile: profile.analysis })
       });
       const data = await res.json();
@@ -52,9 +57,12 @@ export default function CareerDiscovery() {
   const handleActivateTrack = async (career) => {
     setIsGeneratingRoadmap(true);
     try {
-      const res = await fetch("http://localhost:5000/api/ai/roadmap", {
+      const res = await fetch("http://localhost:5001/api/ai/roadmap", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
         body: JSON.stringify({ careerId: career.id, careerTitle: career.title })
       });
       const data = await res.json();

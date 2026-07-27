@@ -22,6 +22,12 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
+    // Generate fallback UUID for anonymous usage
+    if (!localStorage.getItem('skillnova_uuid')) {
+      const fallbackUuid = 'anon-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('skillnova_uuid', fallbackUuid);
+    }
+
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(buildUser(session?.user));

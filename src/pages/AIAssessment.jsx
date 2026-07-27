@@ -1,36 +1,62 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, BrainCircuit, ArrowRight, Loader, Send } from "lucide-react";
+import { Sparkles, BrainCircuit, Loader, Send } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
+import { useAuth } from "../contexts/AuthContext";
 import GlassCard from "../components/ui/GlassCard";
-import Button from "../components/ui/Button";
-
-const assessmentQuestions = [
-  "Hi! I'm NOVA. I'm here to help you get ready for a great career. Let's start with a simple question: What do you want to become?",
-  "Awesome! Have you learned anything about this before?",
-  "How much time can you study every day? (e.g., 30 minutes, 2 hours)",
-  "What do you enjoy learning the most?",
-  "Do you prefer learning by watching videos, reading, or practicing hands-on?",
-  "Are you currently studying in school or college?",
-  "Finally, how would you describe your current level? (Beginner, Intermediate, or Advanced)"
-];
 
 export default function AIAssessment() {
   const navigate = useNavigate();
   const { setAssessmentProfile } = useCareer();
+  const { user } = useAuth();
   
-  const [currentIdx, setCurrentIdx] = useState(0);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [answers, setAnswers] = useState({});
   
   const messagesEndRef = useRef(null);
-  
-  // Initialize with first question
+  const fetchedInitial = useRef(false);
+
+  const fetchNextQuestion = async (currentAnswers) => {
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch("http://localhost:5001/api/ai/assessment/next", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
+        body: JSON.stringify({ answers: currentAnswers })
+      });
+      const data = await res.json();
+      
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to fetch next question.");
+      }
+
+      if (data.isComplete && data.profileAnalysis) {
+        setAssessmentProfile({
+          answers: currentAnswers,
+          analysis: data.profileAnalysis
+        });
+        navigate("/career-discovery");
+      } else {
+        setMessages(prev => [...prev, { sender: "nova", text: data.reply }]);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { sender: "nova", text: "⚠️ System Alert: Failed to communicate with NOVA. Ensure the backend is running." }]);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([{ sender: "nova", text: assessmentQuestions[0] }]);
+    if (messages.length === 0 && !fetchedInitial.current) {
+      fetchedInitial.current = true;
+      fetchNextQuestion({});
     }
   }, [messages.length]);
 
@@ -49,58 +75,16 @@ export default function AIAssessment() {
     const userText = inputValue.trim();
     setInputValue("");
     
-    // Add user message
-    const newMessages = [...messages, { sender: "user", text: userText }];
-    setMessages(newMessages);
+    // Find the last question asked by NOVA
+    const lastNovaMsg = messages.slice().reverse().find(m => m.sender === "nova");
+    const questionText = lastNovaMsg ? lastNovaMsg.text : "Unknown Question";
 
-    if (currentIdx < assessmentQuestions.length - 1) {
-      // Add NOVA's next question after a tiny delay for realism
-      setTimeout(() => {
-        setMessages(prev => [...prev, { sender: "nova", text: assessmentQuestions[currentIdx + 1] }]);
-        setCurrentIdx(prev => prev + 1);
-      }, 600);
-    } else {
-      // Finished all questions, trigger analysis
-      await submitAssessment(newMessages);
-    }
-  };
-
-  const submitAssessment = async (finalMessages) => {
-    setIsAnalyzing(true);
-    try {
-      // Format answers for the AI
-      const formattedAnswers = {};
-      for (let i = 0; i < finalMessages.length; i++) {
-        if (finalMessages[i].sender === "nova" && finalMessages[i + 1]?.sender === "user") {
-          formattedAnswers[finalMessages[i].text] = finalMessages[i + 1].text;
-        }
-      }
-
-      const res = await fetch("http://localhost:5000/api/ai/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: formattedAnswers })
-      });
-      const data = await res.json();
-      
-      if (!res.ok || data.error) {
-        throw new Error(data.error || "Failed to analyze profile.");
-      }
-
-      // Save profile to context
-      setAssessmentProfile({
-        answers: formattedAnswers,
-        analysis: data
-      });
-      
-      // Navigate to Career Discovery
-      navigate("/career-discovery");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to analyze profile. Make sure the backend is running with Gemini API key.");
-    } finally {
-      setIsAnalyzing(false);
-    }
+    const newAnswers = { ...answers, [questionText]: userText };
+    setAnswers(newAnswers);
+    
+    setMessages(prev => [...prev, { sender: "user", text: userText }]);
+    
+    await fetchNextQuestion(newAnswers);
   };
 
   return (
@@ -117,7 +101,6 @@ export default function AIAssessment() {
 
       <GlassCard className="flex-1 border-violet-500/20 flex flex-col overflow-hidden" glow="purple">
         
-        {/* Chat History Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           <AnimatePresence>
             {messages.map((msg, idx) => (
@@ -151,7 +134,7 @@ export default function AIAssessment() {
                 </div>
                 <div className="p-4 rounded-2xl rounded-tl-none text-sm text-violet-300 bg-[#0a081c]/60 border border-violet-500/30 flex items-center gap-3">
                   <Loader size={16} className="animate-spin" />
-                  NOVA is analyzing your responses and generating your career profile...
+                  NOVA is generating the next inquiry...
                 </div>
               </div>
             </motion.div>
@@ -159,7 +142,6 @@ export default function AIAssessment() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
         <div className="p-4 bg-black/20 border-t border-white/5 flex-shrink-0">
           <form onSubmit={handleSend} className="relative flex items-center">
             <input

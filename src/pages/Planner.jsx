@@ -2,20 +2,25 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Plus, CheckCircle2, Trash2, CalendarDays, BookMarked, Sparkles, BrainCircuit, Loader, Target, Flame } from "lucide-react";
 import { useCareer } from "../contexts/CareerContext";
+import { useAuth } from "../contexts/AuthContext";
 import GlassCard from "../components/ui/GlassCard";
 import Button from "../components/ui/Button";
 import { scaleIn } from "../animations/motion";
 
 export default function Planner() {
   const { activeRoadmap, dailyMission, setDailyMission, xp, assessmentProfile } = useCareer();
+  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
 
   const generateMission = async () => {
     setIsGenerating(true);
     try {
-      const res = await fetch("http://localhost:5000/api/ai/planner", {
+      const res = await fetch("http://localhost:5001/api/ai/planner", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || localStorage.getItem('skillnova_uuid') || 'guest-123'
+        },
         body: JSON.stringify({
           activeRoadmap,
           assessmentProfile,
